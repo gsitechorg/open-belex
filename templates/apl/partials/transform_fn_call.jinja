@@ -1,0 +1,42 @@
+%{- if cardinality == "MANY" }%
+        ${ field_id }$ = []
+        for ${ field_id[:-1] }$ in ${ kind_id }$.${ field_id }$:
+%{- for camel_case_id, underscore_id, is_bleir in kinds }%
+%{- if loop.index == 1 }%
+            if isinstance(${ field_id[:-1] }$, ${ camel_case_id }$):
+%{- else }%
+            elif isinstance(${ field_id[:-1] }$, ${ camel_case_id }$):
+%{- endif }%
+%{- if is_bleir }%
+                ${ field_id[:-1] }$ = self.visit_${ underscore_id }$(${ field_id[:-1] }$)
+%{- else }%
+                pass
+%{- endif }%
+%{- endfor }%
+%{- if not nullable }%
+            else:
+                raise SyntacticError(f"Unsupported ${ field_id }$ type ({${ field_id[:-1] }$.__class__.__name__}): {${ field_id[:-1] }$}")
+%{- endif }%
+            ${ field_id }$.append(${ field_id[:-1] }$)
+%{- else }%
+%{- if kinds|length > 0 -}%
+%{- for camel_case_id, underscore_id, is_bleir in kinds }%
+%{- if loop.index == 1 }%
+        if isinstance(${ kind_id }$.${ field_id }$, ${ camel_case_id }$):
+%{- else }%
+        elif isinstance(${ kind_id }$.${ field_id }$, ${ camel_case_id }$):
+%{- endif }%
+%{- if is_bleir }%
+            ${ field_id }$ = self.visit_${ underscore_id }$(${ kind_id }$.${ field_id }$)
+%{- else }%
+            ${ field_id }$ = ${ kind_id }$.${ field_id }$
+%{- endif }%
+%{- endfor }%
+%{- if nullable }%
+        elif ${ kind_id }$.${ field_id }$ is None:
+            ${ field_id }$ = None
+%{- endif }%
+        else:
+            raise SyntacticError(f"Unsupported ${ field_id }$ type ({${ kind_id }$.${ field_id }$.__class__.__name__}): {${ kind_id }$.${ field_id }$}")
+%{- endif }%
+%{- endif -}%

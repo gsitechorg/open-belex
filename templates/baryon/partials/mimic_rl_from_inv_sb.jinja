@@ -1,0 +1,4 @@
+%{ if load_mask }%${ load_mask }$
+%{ endif }%${ load_vrs }$
+    %{ if is_patched }%${ patch_nym }$ =
+        %{ endif }%baryon_rl_from_inv_sb(&apuc, ${ mask_nym }$, __baryon_vrs, __baryon_num_vrs);

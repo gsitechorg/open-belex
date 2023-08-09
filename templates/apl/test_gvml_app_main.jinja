@@ -1,0 +1,76 @@
+${emit_copyright()}$
+
+#include <stdio.h>
+
+#include <gsi/libgdl.h>
+#include <gsi/libsys.h>
+#include <gsi/gsi_sim_config.h>
+
+#include "${ name }$-constants.h"
+#include "test_${ name }$.h"
+
+#define BELEX_NUM_CTXS 1
+
+## if target == "apl":
+static struct gsi_sim_contexts g_ctxs[BELEX_NUM_CTXS] = {
+  {
+    .apu_count = 1,
+    .apucs_per_apu = 4,
+    .mem_size = 0x40000000,
+  }
+};
+## endif
+
+int main(int argc, char *argv[])
+{
+  argc = argc + 0;  // squelch warning -Wunused-parameter
+  int ret = 0;
+  unsigned int num_ctxs;
+## if target == "apl":
+  long mem_size, num_apucs;
+## endif
+  struct gdl_context_desc contexts_desc[GDL_MAX_NUM_CONTEXTS];
+
+  gsi_libsys_init(argv[0], true);
+
+## if target == "apl":
+  gsi_sim_create_simulator(BELEX_NUM_CTXS, g_ctxs);
+## endif
+
+  gdl_init();
+  gdl_context_count_get(&num_ctxs);
+  gdl_context_desc_get(contexts_desc, num_ctxs);
+
+## if target == "apl":
+  gdl_context_property_get(contexts_desc[0].ctx_id, GDL_CONTEXT_MEM_SIZE, &mem_size);
+  gdl_context_property_get(contexts_desc[0].ctx_id, GDL_CONTEXT_NUM_APUCS, &num_apucs);
+
+  printf("Num Contexts = %u\n", num_ctxs);
+  printf("Memory Size = %ld\n", mem_size);
+  printf("Num Apucs = %ld\n", num_apucs);
+## endif
+
+  ret = gdl_context_alloc(contexts_desc[0].ctx_id, 0, NULL, NULL);
+  if (ret) {
+    printf("Failed to allocate GDL context (err = %d)!!!\n", ret);
+    return ret;
+  }
+
+  ret = run_${ name }$_tests(contexts_desc[0].ctx_id);
+
+  gdl_context_free(contexts_desc[0].ctx_id);
+  gdl_exit();
+
+  gsi_sim_destroy_simulator();
+  gsi_libsys_exit();
+
+  if (ret == BELEX_EXIT_SUCCESS) {
+    printf("[SUCCESS] ${ name }$ (num_instructions=${ num_instructions }$, "
+                                 "num_commands=${ num_commands }$)\n\n");
+  } else {
+    printf("[FAILURE] ${ name }$ (num_instructions=${ num_instructions }$, "
+                                 "num_commands=${ num_commands }$)\n\n");
+  }
+
+  return ret;
+}

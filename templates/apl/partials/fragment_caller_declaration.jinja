@@ -1,0 +1,10 @@
+## if doc_comment
+/**
+## for line in doc_comment:
+ * ${ line }$
+## endfor
+ */
+## endif
+void ${ caller_id }$(
+        %{ for parameter in parameters }%${ parameter }$%{ if not loop.last }%,
+        %{ endif }%%{ endfor }%)

@@ -1,0 +1,5 @@
+%{ if load_mask }%${ load_mask }$
+%{ endif }%${ load_src }$
+    %{ if is_patched }%${ patch_nym }$ =
+        %{ endif }%baryon_rl_or_eq_src(&apuc, ${ mask_nym }$, __baryon_src, __baryon_src_type);%{ if free_src }%
+    ${ free_src }$(__baryon_src);%{ endif }%

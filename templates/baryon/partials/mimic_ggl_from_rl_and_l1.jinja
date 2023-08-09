@@ -1,0 +1,4 @@
+%{ if load_mask }%${ load_mask }$
+%{ endif }%%{ if load_l1 }%${ load_l1 }$
+%{ endif }%    %{ if is_patched }%${ patch_nym }$ =
+        %{ endif }%baryon_ggl_from_rl_and_l1(&apuc, ${ mask_nym }$, ${ l1_nym }$);

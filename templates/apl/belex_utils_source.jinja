@@ -1,0 +1,101 @@
+${ emit_copyright() }$
+
+#include <gsi/libsys.h>
+#include <gsi/gal-fast-funcs.h>
+
+#include "${ name }$-utils.h"
+#include "${ header_file }$"
+
+static inline void belex_dma_l2_to_l1(uint32_t vmr)
+{
+  belex_l2dma_l2_ready_rst_all();
+  for (uint8_t bank = 0; bank < 4; bank += 1) {
+    belex_load_vmr_16(vmr, bank, bank == (4 - 1), (uint8_t)(bank * 2));
+  }
+}
+
+static inline void belex_dma_l1_to_l2(uint32_t vmr)
+{
+  belex_l2dma_l2_ready_rst_all();
+  for (uint8_t bank = 0; bank < 4; bank += 1) {
+    belex_store_vmr_16(vmr, bank, bank == (4 - 1), (uint8_t)(bank * 2));
+  }
+}
+
+void belex_dma_mem_to_vr(uint32_t dest_vp, uint16_t *vec_16b, int size_16)
+{
+  uint32_t vmr = 0;
+  struct gal_fast_l2dma_l4_l2_transaction transactions[1];
+  gal_l2dma_hndl_t *ioxs[BELEX_NUM_APCS_PER_APUC] = {0};
+  int size_apc0 = MIN(BELEX_VR16_SIZE / 2, size_16);
+  int size_apc1 = size_16 - size_apc0;
+
+  if (size_16 > BELEX_VR16_SIZE) {
+    gsi_log("data size(%d) is too big for VR", size_16);
+    return;
+  }
+
+  transactions[0].num_steps = 1;
+  transactions[0].step_size_num_512b_chunk = size_apc0 * sizeof(uint16_t) / 512;
+  transactions[0].l4_addr = vec_16b;
+  transactions[0].l2_mode = GAL_L2T_MODE_64;
+  transactions[0].l2_col_group = 0;
+
+  gal_fast_cache_dcache_flush_mlines((uint32_t)vec_16b, size_16 * sizeof(uint16_t));
+
+  ioxs[BELEX_L2DMA_APC_ID_0] =
+    belex_l2dma_mem_to_l2_start(BELEX_L2DMA_APC_ID_0, 1, transactions,
+                                GAL_L2DMA_L2_READY_SET);
+
+  transactions[0].step_size_num_512b_chunk = size_apc1 * sizeof(uint16_t) / 512;
+  transactions[0].l4_addr = vec_16b + size_apc0;
+
+  ioxs[BELEX_L2DMA_APC_ID_1] =
+    belex_l2dma_mem_to_l2_start(BELEX_L2DMA_APC_ID_1, 1, transactions,
+                                GAL_L2DMA_L2_READY_SET);
+
+  gal_fast_sync_many_blocking(ioxs, 2);
+
+  belex_dma_l2_to_l1(vmr);
+  belex_load_16(dest_vp, vmr);
+}
+
+void belex_dma_vr_to_mem(uint16_t *vec_16b, uint32_t src_vp, int size_16)
+{
+  uint32_t vmr = 0;
+  belex_store_16(vmr, src_vp);
+
+  struct gal_fast_l2dma_l4_l2_transaction transactions[1];
+  gal_l2dma_hndl_t *ioxs[BELEX_NUM_APCS_PER_APUC];
+  int size_apc0 = MIN(BELEX_VR16_SIZE / 2, size_16);
+  int size_apc1 = size_16 - size_apc0;
+
+  if (size_16 > BELEX_VR16_SIZE) {
+    gsi_log("data size(%d) is too big for VR", size_16);
+    return;
+  }
+
+  belex_dma_l1_to_l2(vmr);
+
+  transactions[0].num_steps = 1;
+  transactions[0].step_size_num_512b_chunk = size_apc0 * sizeof(uint16_t) / 512;
+  transactions[0].l4_addr = vec_16b;
+  transactions[0].l2_mode = GAL_L2T_MODE_64;
+  transactions[0].l2_col_group = 0;
+  ioxs[BELEX_L2DMA_APC_ID_0] =
+    belex_l2dma_l2_to_mem_start(BELEX_L2DMA_APC_ID_0, 1, transactions,
+                                GAL_L2DMA_L2_READY_SET);
+
+  transactions[0].step_size_num_512b_chunk = size_apc1 * sizeof(uint16_t) / 512;
+  transactions[0].l4_addr = vec_16b + size_apc0;
+
+  gal_fast_cache_dcache_invalidate_mlines((uint32_t)vec_16b,
+                                          size_16 * sizeof(uint16_t));
+
+  ioxs[BELEX_L2DMA_APC_ID_1] =
+    belex_l2dma_l2_to_mem_start(BELEX_L2DMA_APC_ID_1, 1, transactions,
+                                GAL_L2DMA_L2_READY_SET);
+
+  belex_l2dma_sync(ioxs[BELEX_L2DMA_APC_ID_0], BELEX_L2DMA_APC_ID_0, true);
+  belex_l2dma_sync(ioxs[BELEX_L2DMA_APC_ID_1], BELEX_L2DMA_APC_ID_1, true);
+}

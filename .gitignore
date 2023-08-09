@@ -1,0 +1,102 @@
+# The blacklist-all-whitelist-some strategy seems not work. "git status"
+# always says "the working directory is clean". I am commenting-out this
+# attempt so that we don't lose the idea, but I have not been able to
+# debug it. I will substitute in a more standard blacklist-some strategy
+# from the nanosim-apu repository.
+
+### # Blacklist everything by default
+### *
+
+### # Allow specific file patterns to be whitelisted
+### !*/
+
+### # Whitelist specific file patterns
+### !/.gitignore
+### !/.project-root
+### !/MANIFEST.in
+### !/README.md
+### !/bin/belex-to-apl
+### !/bin/belex-to-apl-pair
+### !/bin/belex-to-frag-caller-decl
+### !/bin/belex-to-frag-caller-def
+### !/bin/generate-docs
+### !/bin/nsdb
+### !/docs/**/*.md
+### !/pyproject.toml
+### !/setup.cfg
+### !/setup.py
+### !/src/**/*.py
+### !/templates/**/*.jinja
+### !/tests/**/*.py
+### !/tox.ini
+
+### # Blacklist-some
+
+.DS_Store
+
+pycharm-venv-trial-2/
+pycharm-venv-trial/
+
+**/*.egg-info
+.hypothesis/
+prof/
+__pycache__/
+.python-version
+*.pyc
+.cache/
+.mypy_cache/
+venv*/
+env*/
+# build-example/*
+*~
+tmp/
+build/
+build/*
+.idea/
+.idea/*
+build_log.txt
+
+nohup.out
+
+.ipynb_checkpoints/
+
+ework/snip7*
+
+bstest/*-apl-funcs.apl
+bstest/*-apl-funcs.apl.h
+bstest/*-intern.h
+bstest/*_sas.c
+bstest/*_sas.h
+
+*.o
+*.a
+*.i
+
+mve-*.c
+mve-*.h
+mve-*.apl
+mve-0*.sh
+
+*.tex
+*.pdf
+*.aux
+*.log
+rosetta*.tex
+_minted*
+
+*.toolbox
+
+.tox
+dist
+
+**/.#*
+**/*.sw?
+*.egg-info/
+
+docs/sphinx/sphinx-venv
+
+# Git merge conflict temporaries
+*_BACKUP_*
+*_BASE_*
+*_LOCAL_*
+*_REMOTE_*

@@ -1,0 +1,305 @@
+${emit_copyright()}$
+
+#include <math.h>
+#include <stdio.h>
+
+#include <gsi/libgdl.h>
+
+## if target == "apl":
+#include "gvml-basic-app-defs.h"
+## endif
+#include "${ name }$-constants.h"
+#include "${ name }$-examples.h"
+#include "test_${ name }$.h"
+
+#define WINDOW_SIZE 8
+#define PANE_SIZE ((WINDOW_SIZE) / 2)
+
+#define NUM_FAILURES_TO_VIEW 5
+
+## if target == "apl":
+static void encode_for_l2t(uint16_t target[BELEX_NUM_PLATS_PER_APUC], uint16_t source[BELEX_NUM_PLATS_PER_APUC]) {
+  // Encoding scheme for GAL_L2T_MODE_64
+  for (size_t m = 0; m < 4; m += 1) {
+    for (size_t n = 0; n < 4; n += 1) {
+      for (size_t p = 0; p < BELEX_NUM_PLATS_PER_HALF_BANK; p += 1) {
+        target[m * 4 * BELEX_NUM_PLATS_PER_HALF_BANK + p * 4 + n] =
+          source[p + n * BELEX_NUM_PLATS_PER_HALF_BANK + m * BELEX_NUM_PLATS_PER_HALF_BANK * 4];
+      }
+    }
+  }
+}
+
+static void decode_for_l2t(uint16_t target[BELEX_NUM_PLATS_PER_APUC], uint16_t source[BELEX_NUM_PLATS_PER_APUC]) {
+  // Decoding scheme for GAL_L2T_MODE_64
+  for (size_t m = 0; m < 4; m += 1) {
+    for (size_t n = 0; n < 4; n += 1) {
+      for (size_t p = 0; p < BELEX_NUM_PLATS_PER_HALF_BANK; p += 1) {
+        target[p + n * BELEX_NUM_PLATS_PER_HALF_BANK + m * BELEX_NUM_PLATS_PER_HALF_BANK * 4] =
+          source[m * 4 * BELEX_NUM_PLATS_PER_HALF_BANK + p * 4 + n];
+      }
+    }
+  }
+}
+## endif
+
+static void repeat(char c, size_t num_times) {
+  for (size_t i = 0; i < num_times; i += 1) {
+    printf("%c", c);
+  }
+}
+
+static size_t count_digits(size_t value) {
+  size_t num_digits = 0;
+  do {
+    num_digits += 1;
+    value /= 10;
+  } while (value > 0);
+  return num_digits;
+}
+
+static void print_horizontal_boundary(size_t lower, size_t upper) {
+  printf("[DEBUG] ");
+  for (size_t j = lower; j < upper; j += 1) {
+    repeat('-', count_digits(j));
+    printf(" ");
+  }
+  printf("\n");
+}
+
+static void glass(uint16_t vr[], size_t lower, size_t upper) {
+  print_horizontal_boundary(lower, upper);
+
+  printf("[DEBUG] ");
+  for (size_t j = lower; j < upper; j += 1) {
+    printf("%lu ", j);
+  }
+  printf("\n");
+
+  print_horizontal_boundary(lower, upper);
+
+  for (int k = 0; k < 4; k += 1) {
+    printf("[DEBUG] ");
+    for (size_t j = lower; j < upper; j += 1) {
+      const uint16_t value = vr[j];
+      const uint16_t nibble = (value >> (12 - 4 * k)) & 0x000F;
+      repeat(' ', count_digits(j) - 1);
+      printf("%X ", nibble);
+    }
+    printf("\n");
+  }
+
+  print_horizontal_boundary(lower, upper);
+}
+
+static void highlight(size_t lower, size_t upper, size_t target) {
+  printf("[DEBUG] ");
+  for (size_t j = lower; j < upper; j += 1) {
+    if (j == target) {
+      repeat('^', count_digits(j));
+      break;
+    }
+    else {
+      repeat(' ', count_digits(j));
+    }
+    printf(" ");
+  }
+  printf("\n");
+}
+
+extern int ${ name }$_module(void *in_buf, void *out_buf);
+
+int run_${ name }$_test(gdl_context_handle_t ctx_id, uint16_t (*example)[BELEX_NUM_PLATS_PER_APUC]) {
+  int ret = BELEX_EXIT_SUCCESS;
+
+  static const size_t vr_size = BELEX_NUM_PLATS_PER_APUC * sizeof(uint16_t);
+## if target == "apl":
+  static uint16_t encoded[BELEX_NUM_PLATS_PER_APUC];
+  static uint16_t decoded[BELEX_NUM_PLATS_PER_APUC];
+## else:
+  static uint16_t vr[BELEX_NUM_PLATS_PER_APUC];
+## endif
+
+## if reg_nyms|count > 1:
+  // Input Buffer
+  size_t in_buf_size = sizeof(struct ${ name }$_input);
+  gdl_mem_handle_t in_buf =
+    gdl_mem_alloc_nonull(ctx_id, in_buf_size, GDL_CONST_MAPPED_POOL);
+  struct ${ name }$_input * p_in = (struct ${ name }$_input *)
+    gdl_mem_handle_to_host_ptr(in_buf);
+## endif
+
+  // Output Buffer
+  size_t out_buf_size = sizeof(struct ${ name }$_output);
+  gdl_mem_handle_t out_buf =
+    gdl_mem_alloc_nonull(ctx_id, out_buf_size, GDL_CONST_MAPPED_POOL);
+  struct ${ name }$_output * p_out = (struct ${ name }$_output *)
+    gdl_mem_handle_to_host_ptr(out_buf);
+
+## for reg_nym in reg_nyms:
+## if loop.index > 1:
+  p_in->${ reg_nym }$ =
+    gdl_mem_alloc_aligned(ctx_id, vr_size, GDL_CONST_MAPPED_POOL, GDL_ALIGN_64);
+## if target == "apl":
+  encode_for_l2t(encoded, example[${ loop.index - 1}$]);
+  gdl_mem_cpy_to_dev(p_in->${ reg_nym }$, encoded, vr_size);
+## else:
+  gdl_mem_cpy_to_dev(p_in->${ reg_nym }$, example[${ loop.index - 1}$], vr_size);
+## endif
+## endif
+## endfor
+
+  p_out->${ reg_nyms[0] }$ =
+    gdl_mem_alloc_aligned(ctx_id, vr_size, GDL_CONST_MAPPED_POOL, GDL_ALIGN_64);
+
+## if target == "apl":
+  int task_ret = gdl_run_task_timeout(
+    ctx_id,
+    GDL_TASK(${ name }$_module),
+## if reg_nyms|count > 1:
+    in_buf,
+## else
+    GDL_MEM_HANDLE_NULL,
+## endif
+    out_buf,
+    GDL_TEMPORARY_DEFAULT_MEM_BUF,
+    GDL_TEMPORARY_DEFAULT_MEM_BUF_SIZE,
+    GDL_TEMPORARY_DEFAULT_CORE_INDEX,
+    NULL,
+    0,
+    GDL_USER_MAPPING
+  );
+## else:
+  int task_ret = ${ name }$_module(%{ if reg_nyms|count > 1 }%(void *) in_buf%{ else }%GDL_MEM_HANDLE_NULL%{ endif }%, (void *) out_buf);
+## endif
+
+## if target == "apl":
+  gdl_mem_cpy_from_dev(encoded, p_out->${ reg_nyms[0] }$, vr_size);
+  decode_for_l2t(decoded, encoded);
+## else:
+  gdl_mem_cpy_from_dev(vr, p_out->${ reg_nyms[0] }$, vr_size);
+## endif
+
+## if print_params:
+## for reg_nym in reg_nyms[1:]:
+  printf("\n");
+  printf("[DEBUG] Input (${ reg_nym }$): plats [%u, %u)\n", 0, WINDOW_SIZE);
+  glass(example[${ loop.index - 1 }$], 0, WINDOW_SIZE);
+## endfor
+## endif
+
+  printf("\n");
+  printf("[DEBUG] Expected Values (${ reg_nyms[0] }$): plats [%u, %u)\n", 0, WINDOW_SIZE);
+  glass(example[0], 0, WINDOW_SIZE);
+
+  printf("\n");
+  printf("[DEBUG] Actual Values (${ reg_nyms[0] }$): plats [%u, %u)\n", 0, WINDOW_SIZE);
+  glass(%{ if target == "apl" }%decoded%{ else }%vr%{ endif }%, 0, WINDOW_SIZE);
+
+  printf("\n");
+
+## if should_fail:
+  printf("[DEBUG] ^^^ Negative case, failure expected (i.e. expected_value != actual_value => SUCCESS) ^^^\n");
+## endif
+
+  if (task_ret == BELEX_EXIT_SUCCESS) {
+## if not should_fail:
+    size_t num_failures = 0;
+## endif
+    for (size_t j = 0; j < BELEX_NUM_PLATS_PER_APUC; j += 1) {
+      const uint16_t expected_value = example[0][j];
+      const uint16_t actual_value = %{ if target == "apl" }%decoded%{ else }%vr%{ endif }%[j];
+      if (expected_value != actual_value) {
+## if not should_fail:
+        num_failures += 1;
+        if (num_failures <= NUM_FAILURES_TO_VIEW) {
+          printf("Assertion failed: Expected plat %ld of out to be 0x%04X but was 0x%04X\n",
+                 j, expected_value, actual_value);
+
+          ret = BELEX_EXIT_FAILURE;
+          printf("[DEBUG] ${ name }$(%{ for reg_nym in reg_nyms }%%{ if loop.index > 1 }%${ reg_nym }$=0x%04X${ ', ' if not loop.last }$%{ endif }%%{ endfor }%; plat=%lu)\n",
+                 %{ for reg_nym in reg_nyms }%%{ if loop.index > 1 }%example[${ loop.index - 1 }$][j], %{ endif }%%{ endfor }%j);
+
+          size_t lower, upper;
+
+          if (j < PANE_SIZE) {
+            lower = 0;
+            upper = WINDOW_SIZE;
+          }
+          else if (j + PANE_SIZE < BELEX_NUM_PLATS_PER_APUC) {
+            lower = j - PANE_SIZE;
+            upper = j + PANE_SIZE;
+          }
+          else {
+            lower = BELEX_NUM_PLATS_PER_APUC - WINDOW_SIZE;
+            upper = BELEX_NUM_PLATS_PER_APUC;
+          }
+          glass(%{ if target == "apl" }%decoded%{ else }%vr%{ endif }%, lower, upper);
+          highlight(lower, upper, j);
+          printf("\n");
+        }
+## else:
+        ret = BELEX_EXIT_SUCCESS;
+        break;
+## endif
+      }
+    }
+## if not should_fail:
+    if (num_failures > NUM_FAILURES_TO_VIEW) {
+      printf("[DEBUG] ...\n");
+      printf("[DEBUG] and %lu more.\n", num_failures - NUM_FAILURES_TO_VIEW);
+      printf("\n");
+    }
+    printf("[DEBUG] Total number of failures: %lu\n", num_failures);
+## endif
+  }
+
+## for reg_nym in reg_nyms:
+## if loop.index > 1:
+  gdl_mem_free(p_in->${ reg_nym }$);
+## endif
+## endfor
+
+  gdl_mem_free(p_out->${ reg_nyms[0] }$);
+
+## if reg_nyms|count > 1:
+  gdl_mem_free(in_buf);
+## endif
+  gdl_mem_free(out_buf);
+
+  if (ret == BELEX_EXIT_SUCCESS) {
+    ret = task_ret;
+  }
+
+  return ret;
+}
+
+int run_${ name }$_tests(gdl_context_handle_t ctx_id)
+{
+  int ret = BELEX_EXIT_SUCCESS;
+  int task_ret;
+  /* const */ uint16_t (*example)[BELEX_NUM_PLATS_PER_APUC];  // "const" causes warnings.
+## for example_id in example_ids:
+
+  example = (uint16_t (*)[BELEX_NUM_PLATS_PER_APUC])(BELEX_EXAMPLE_${ example_id }$);  // discard "const" for warning
+## if loop.index == 1:
+  //run_${ name }$_test(ctx_id, example);
+## endif
+  task_ret = run_${ name }$_test(ctx_id, example);
+
+  if (task_ret == BELEX_EXIT_SUCCESS) {
+    printf("[PASSED] ${ name }$, EXAMPLE_${ loop.index - 1 }$ (num_instructions=${ num_instructions }$, "
+                                                              "num_commands=${ num_commands }$)\n");
+  }
+  else {
+    printf("[FAILED] ${ name }$, EXAMPLE_${ loop.index - 1 }$ (num_instructions=${ num_instructions }$, "
+                                                              "num_commands=${ num_commands }$)\n");
+  }
+
+  if (ret == BELEX_EXIT_SUCCESS) {
+    ret = task_ret;
+  }
+## endfor
+
+  return ret;
+}

@@ -1,0 +1,2 @@
+{%{ for plat in plats }%${ plat | hex }$${ "," if not loop.last }$%{ if loop.index % 16 == 0 and not loop.last }%
+   %{ endif }%%{ endfor }%}

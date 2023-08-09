@@ -1,0 +1,10 @@
+{
+## if target == "apl":
+    RUN_FRAG_ASYNC(
+        ${ fragment_id }$(
+            %{ for register in registers }%${ register.register_param }$=${ register.register }$%{ if not loop.last }%,
+            %{ endif }%%{ endfor }%));
+## else:
+    ${ fragment_id }$(%{ for register in registers }%${ register.register }$%{ if not loop.last }%, %{ endif }%%{ endfor }%);
+## endif
+}

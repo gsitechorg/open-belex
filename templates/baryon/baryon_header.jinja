@@ -1,0 +1,21 @@
+${emit_copyright()}$
+
+#ifndef __BARYON__FRAGMENTS__${ name | upper }$_H__
+#define __BARYON__FRAGMENTS__${ name | upper }$_H__
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+#include <stddef.h>
+
+## for declaration in declarations:
+${ declaration }$;
+
+## endfor
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif // __BARYON__FRAGMENTS__${ name | upper }$_H__

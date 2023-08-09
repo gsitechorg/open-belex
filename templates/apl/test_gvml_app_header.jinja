@@ -1,0 +1,13 @@
+${emit_copyright()}$
+
+#ifndef TEST_${ name | upper }$_H
+#define TEST_${ name | upper }$_H
+
+#include "${ name }$-examples.h"
+
+int run_${ name }$_test(gdl_context_handle_t ctx_id,
+                        uint16_t (*example)[BELEX_NUM_PLATS_PER_APUC]);
+
+int run_${ name }$_tests(gdl_context_handle_t ctx_id);
+
+#endif /* TEST_${ name | upper }$_H */

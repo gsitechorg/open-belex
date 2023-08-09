@@ -1,0 +1,196 @@
+${ emit_copyright() }$
+
+#include "${ header_file }$"
+
+#include <stdbool.h>
+#include <stdlib.h>
+
+#include <gsi/baryon/apuc.h>
+#include <gsi/baryon/seu_layer.h>
+#include <gsi/common_api.h>
+#include <gsi/libapl.h>
+#include <gsi/libgal.h>
+
+extern baryon_apuc_t apuc;
+extern baryon_seu_layer_t seu_layer;
+
+## if not explicit_frags_only:
+void belex_init(void)
+{
+## if target == "baryon":
+  baryon_init();
+## endif
+## for group in lowered_registers.values():
+## for reg in group:
+  ${ apl_set_reg(reg) }$
+## endfor
+## endfor
+  gal_init();
+}
+
+
+void belex_init_once(void)
+{
+  static bool init_done = false;
+
+  if (!init_done) {
+    init_done = true;
+    belex_init();
+  }
+}
+
+
+void belex_exit(void)
+{
+  gal_exit();
+}
+
+
+#ifdef __linux__
+__attribute__((section("text_hot_utils")))
+#endif
+void belex_store_16(uint32_t vm_reg, uint32_t src)
+{
+  uint32_t parity_grp, parity_dst;
+  uint16_t dst = belex_gal_vm_reg_to_set_ext(vm_reg,
+                                             &parity_grp,
+                                             &parity_dst);
+  uint16_t parity_mask = belex_store_16_parity_mask(parity_grp);
+  belex_store_16_t0(dst, parity_dst, parity_mask, src);
+}
+
+
+#ifdef __linux__
+__attribute__((section("text_hot_utils")))
+#endif
+void belex_load_16(uint32_t dst, uint32_t vm_reg)
+{
+  uint32_t parity_grp, parity_src;
+  uint16_t src = belex_gal_vm_reg_to_set_ext(vm_reg,
+                                             &parity_grp,
+                                             &parity_src);
+  uint16_t parity_mask = belex_load_16_parity_mask(parity_grp);
+  belex_load_16_t0(dst, src, parity_src, parity_mask);
+}
+
+
+static inline __attribute__((always_inline))
+void _copy_N_l1_to_l2(uint8_t l1_bank_id,
+                      uint32_t vm_reg,
+                      uint32_t l1_grp,
+                      int num_bytes,
+                      bool l2_ready_set,
+                      uint8_t l2_start_byte)
+{
+  int i;
+  uint32_t l1_parity_grp, l1_parity_row;
+  uint32_t l1_grp_row = belex_gal_vm_reg_to_set_ext(vm_reg,
+                                                &l1_parity_grp,
+                                                &l1_parity_row);
+  uint8_t l2_addr;
+
+  for (i = 0; i < num_bytes; i++, l1_grp += 2, l1_parity_grp += 2) {
+    if (l1_grp >= GSI_L1_NUM_GRPS) {
+      l1_grp = 0;
+      vm_reg++;
+      l1_grp_row = belex_gal_vm_reg_to_set_ext(vm_reg,
+                                               &l1_parity_grp,
+                                               &l1_parity_row);
+    }
+    l2_addr = belex_gal_encode_l2_addr(l2_start_byte + i, 0);
+
+    uint32_t src_addr =
+        belex_bank_group_row_to_addr(l1_bank_id, l1_grp, l1_grp_row);
+
+    uint32_t parity_src_addr =
+        belex_bank_group_row_to_addr(l1_bank_id, l1_parity_grp, l1_parity_row);
+
+    belex_copy_l1_to_l2_byte(l2_addr,
+                             src_addr,
+                             parity_src_addr);
+  }
+
+  if (l2_ready_set) {
+    belex_l2_end();
+  }
+}
+
+
+#ifdef __linux__
+__attribute__((section("text_hot_utils")))
+#endif
+void belex_store_vmr_16(uint32_t vm_reg,
+                        uint8_t l1_bank_id,
+                        bool l2_ready_set,
+                        uint8_t l2_start_byte)
+{
+  _copy_N_l1_to_l2(l1_bank_id, vm_reg, 0, 2, l2_ready_set, l2_start_byte);
+}
+
+
+static inline __attribute__((always_inline))
+void _copy_N_l2_to_l1(uint8_t l1_bank_id,
+                      uint32_t vm_reg,
+                      uint32_t l1_grp,
+                      int num_bytes,
+                      bool l2_ready_set,
+                      uint8_t l2_start_byte)
+{
+  int i;
+  uint32_t l1_parity_grp, l1_parity_row;
+  uint32_t l1_grp_row = belex_gal_vm_reg_to_set_ext(vm_reg,
+                                                &l1_parity_grp,
+                                                &l1_parity_row);
+  uint8_t l2_addr;
+
+  for (i = 0; i < num_bytes; i++, l1_grp += 2, l1_parity_grp += 2) {
+    if (l1_grp >= GSI_L1_NUM_GRPS) {
+      l1_grp = 0;
+      vm_reg++;
+      l1_grp_row = belex_gal_vm_reg_to_set_ext(vm_reg,
+                                               &l1_parity_grp,
+                                               &l1_parity_row);
+    }
+    l2_addr = belex_gal_encode_l2_addr(l2_start_byte + i, 0);
+
+    uint32_t dst_addr =
+        belex_bank_group_row_to_addr(l1_bank_id, l1_grp, l1_grp_row);
+
+    uint32_t parity_dst_addr =
+        belex_bank_group_row_to_addr(l1_bank_id, l1_parity_grp, l1_parity_row);
+
+    belex_copy_l2_to_l1_byte(dst_addr,
+                             parity_dst_addr,
+                             l2_addr);
+  }
+
+  if (l2_ready_set) {
+    belex_l2_end();
+  }
+}
+
+
+#ifdef __linux__
+__attribute__((section("text_hot_utils")))
+#endif
+void belex_load_vmr_16(uint32_t vm_reg,
+                       uint8_t l1_bank_id,
+                       bool l2_ready_set,
+                       uint8_t l2_start_byte)
+{
+  _copy_N_l2_to_l1(l1_bank_id, vm_reg, 0, 2, l2_ready_set, l2_start_byte);
+}
+
+## endif
+## for definition in definitions:
+${ definition }$
+
+## endfor
+
+## if not explicit_frags_only:
+## for caller in callers:
+${ caller }$
+
+
+## endfor
+## endif

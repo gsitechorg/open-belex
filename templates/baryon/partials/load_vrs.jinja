@@ -1,0 +1,2 @@
+    __baryon_num_vrs = ${ reg_nyms | length }$;%{ for reg_nym in reg_nyms }%
+    __baryon_vrs[${ loop.index0 }$] = &apuc.vrs[${ reg_nym }$];%{ endfor }%

@@ -1,0 +1,179 @@
+# BLEIR
+
+An intermediate language for BLECCI. The purpose of this IR is to emit
+code for each APL mimic through the `__str__` dunder of the `STATEMENT`
+type. The ASTs (abstract syntax trees) can be passed downstream for
+transformation and optimization.
+
+For an updated EBNF grammar, please see docs/bleir/index.md
+
+```
+    APL MIMIC (see APL COMMANDS in README.md) BLEIR EXPRESSION
+--- READ LOGIC
+ 1. set_rl(sects, bit)                        masked(sects, assign("RL", bit))
+ 2. rl_from_src(sects, src)                   masked(sects, assign("RL", src))
+ 3. rl_or_equals_src(sects, src)              masked(sects, or_eq("RL", src))
+ 4. rl_and_equals_src(sects, src)             masked(sects, and_eq("RL", src))
+ 5. rl_and_equals_inv_src(sects, src)         masked(sects, and_eq("RL", invert(src)))
+ 6. rl_xor_equals_src(sects, src)             masked(sects, xor_eq("RL", src))
+ 7. rl_from_sb(sects, sb)                     masked(sects, assign("RL", SB[sbub]))
+ 8. rl_or_equals_sb(sects, sb)                masked(sects, or_eq("RL", SB[sbub]))
+ 9. rl_and_equals_sb(sects, sb)               masked(sects, and_eq("RL", SB[sbub]))
+10. rl_and_equals_inv_sb(sects, sb)           masked(sects, and_eq("RL", invert(SB[sbub])))
+11. rl_xor_equals_sb(sects, sb)               masked(sects, xor_eq("RL", SB[sbub]))
+12. rl_from_sb_and_src(sects, sb, src)        masked(sects, assign("RL", conjoin(SB[sbub], src)))
+13. rl_or_equals_sb_and_src(sects, sb, src)   masked(sects, or_eq("RL", conjoin(SB[sbub], src)))
+14. rl_and_equals_sb_and_src(sects, sb, src)  masked(sects, and_eq("RL", conjoin(SB[sbub], src)))
+15. rl_xor_equals_sb_and_src(sects, sb, src)  masked(sects, xor_eq("RL", conjoin(SB[sbub], src)))
+16. rl_from_sb_or_src(sects, sb, src)         masked(sects, assign("RL", disjoin(SB[sbub], src)))
+17. rl_from_sb_xor_src(sects, sb, src)        masked(sects, assign("RL", xor(SB[sbub], src)))
+18. rl_from_inv_sb_and_src(sects, sb, src)    masked(sects, assign("RL", conjoin(invert(SB[sbub]), src)))
+19. rl_from_sb_and_inv_src(sects, sb, src)    masked(sects, assign("RL", conjoin(SB[sbub], invert(src))))
+--- BROADCAST (R-SEL)
+21. gl_from_rl(sects)                         masked(sects, assign("GL", "RL"))
+22. rsp16_from_rl(sects)                      masked(sects, assign("RSP16", "RL"))
+23. rsp256_from_rsp16(self)                   assign("RSP256", "RSP16")
+24. rsp2k_from_rsp256(self)                   assign("RSP2K", "RSP256")
+25. rsp32k_from_rsp2k(self)                   assign("RSP32K", "RSP2K")
+26. noop(self)                                f'NOOP;'
+27. rsp_end(self)                             f'RSP_END;'
+--- WRITE_LOGIC
+28. sb_from_src(sects, sb, src)               masked(sects, assign(SB[sbub], src))
+```
+
+Examples (approximate) ASTs:
+
+```
+set_rl: MASKED                          rl_from_inv_sb_and_src: MASKED
+|-- mask: MASK                          |-- mask: MASK
+|   |-- expression: SM_REG              |   |-- expression: SM_REG
+|   |   `-- identifier: str             |   |   `-- identifier: str
+|   |       `-- "fs"                    |   |       `-- "lvr"
+|   `-- operator: Optional[UNARY_OP]    |   `-- operator: Optional[UNARY_OP]
+|       `-- None                        |       `-- None
+`-- assignment: ASSIGNMENT              `-- assignment: ASSIGNMENT
+    `-- operation: READ                     `-- operation: READ
+        |-- operator: ASSIGN_OP                 |-- operator: ASSIGN_OP
+        |   `-- ASSIGN_OP.EQ                    |   `-- ASSIGN_OP.EQ
+        `-- rvalue: UNARY_EXPR                  `-- rvalue: BINARY_EXPR
+            `-- expression: BIT_EXPR                |-- operator: BINOP
+                `-- BIT_EXPR.ONE                    |   `-- BINOP.AND
+                                                    |-- left_operand: UNARY_SB
+                                                    |   |-- expression: SB_EXPR
+                                                    |   |   x: RN_REG
+                                                    |   |   `-- identifier: str
+                                                    |   |       `-- "rvr"
+                                                    |   `-- operator: Optional[UNARY_OP]
+                                                    |       `-- UNARY_OP.NEGATE
+                                                    `-- right_operand: UNARY_SRC
+                                                        |-- expression: SRC_EXPR
+                                                        |   `-- SRC_EXPR.RL
+                                                        `-- operator: Optional[UNARY_OP]
+                                                            `-- None
+```
+
+TODO: is the following commentary concerning LIR and telemetry relevant any more?
+
+Example of transformation of BLEIR into LIR: line 2907 of `test_BLECCI_1.py`, namely
+
+```
+    bellib_vr_and(pyble, a_and_cry, a, cry, msk_txt)
+```
+
+generates the following BLEIR
+
+```
+    [STATEMENT(expr=MASKED(
+        mask=MASK(
+            expression=SM_REG(
+                identifier="r2sec")),
+        assignment=ASSIGNMENT(
+            operation=READ(
+                operator=ASSIGN_OP.EQ,
+                rvalue=UNARY_EXPR(
+                    expression=UNARY_SB(
+                        expression=SB_EXPR(
+                            x=RN_REG(
+                                identifier="r2vr")))))))),
+     STATEMENT(expr=MASKED(
+         mask=MASK(
+             expression=SM_REG(
+                 identifier="rsec)),
+         assignment=ASSIGNMENT(
+             operation=READ(
+                 operator=ASSIGN_OP.EQ,
+                 rvalue=BINARY_EXPR(
+                     operator=BINOP.AND,
+                     left_operand=UNARY_SB(
+                         expression=SB_EXPR(
+                             x=RN_REG(
+                                 identifier="rvr))),
+                     right_operand=UNARY_SRC(
+                         expression=SRC_EXPR.RL)))))),
+     STATEMENT(expr=MASKED(
+         mask=MASK(
+             expression=SM_REG(
+                 identifier="lsec")),
+         assignment=ASSIGNMENT(
+             operation=WRITE(
+                 lvalue=SB_EXPR(
+                     x=RN_REG(
+                         identifier="lvr")),
+                 rvalue=UNARY_SRC(
+                     expression=SRC_EXPR.RL)))))]
+```
+
+which we need to transform into LIR for the optimizer
+
+```
+    ut_aAc = irbcb1.AND(ir_a, ir_cry)
+```
+
+1 Jan 2021
+
+it seems very easy to go from `ut_aAc = irbcb1.AND(mask, ir_a, ir_cry)` to
+`bellib_vr_and(pyble, a_and_cry, a, cry, mask)`, then to belops, where the
+user's variables are lost, and become `lsec_rp`, `rsec_rp`, etc.
+
+Going the other way is the old Telemetry problem again. There is no easy
+way to go from bellib/belop to LIR without tracking the user's variable
+names and mapping them from the internal names in the bellib/belop
+implementations.
+
+Imagine a top-level expression language, a variation of LIR (adding
+masks/indices), and our front-end work is to generate bellibs and belops
+from it:
+
+Here's what's happening now:
+
+```
+(LIR (IntermediateRepresentation) <-> optimizers) -> straight to APL
+```
+
+```
+bellib / belop / blecci -> BLEIR -> straight to APL
+```
+
+Suppose `(LIR <-> optim) -> BLEIR -> straight to APL`,
+or `(LIR <-> optim) -> bellib / belop / blecci -> BLEIR -> straight to APL`
+
+We could have both of those, `LIR->BLEIR`, `LIR->bellibEtc->BLEIR`, mix and
+match but optimizers only work at LIR level.
+
+We had been thinking `bellibEtc -> LIR(crunch,crunch) -> BLEIR -> APL`.
+
+As the  old "telemetry" problem again ... by the time control gets to
+bellib/belop, the user's variables have been erased. Bellib/Belop only
+knows `lsec`, `rsec`, `lvr`, `rvr`, etc. It doesn't know `a`, `b`,
+ `a_and_cry`, etc.
+
+If we don't make LIR higher than bellib/belop, then we must telemeter
+the user's variables into the belops. That doesn't seem right.
+
+## Grammar
+
+EBNF grammar for BLEIR using ANTLRv4 syntax:
+
+```antlr
+{{ grammar }}
+```

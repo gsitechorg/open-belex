@@ -1,0 +1,6 @@
+%{ if load_mask }%${ load_mask }$
+%{ endif }%${ load_vrs }$
+${ load_src }$
+    %{ if is_patched }%${ patch_nym }$ =
+        %{ endif }%baryon_rl_from_sb_and_inv_src(&apuc, ${ mask_nym }$, __baryon_vrs, __baryon_num_vrs, __baryon_src, __baryon_src_type);%{ if free_src }%
+    ${ free_src }$(__baryon_src);%{ endif }%

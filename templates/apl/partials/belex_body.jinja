@@ -1,0 +1,25 @@
+{
+## if spill_calls:
+## for spill_call in spill_calls:
+    ${ spill_call }$
+## endfor
+## endif
+## for register in initial_active_registers:
+    ${ apl_set_reg(register) }$
+## endfor
+## for fragment_id in fragment_ids:
+## if target == "apl":
+    RUN_FRAG_ASYNC(
+        ${ fragment_id }$(
+            %{ for register in registers }%${ register.register_param }$=${ register.register }$%{ if not loop.last }%,
+            %{ endif }%%{ endfor }%));
+## else:
+    ${ fragment_id }$(%{ for register in registers }%${ register.register }$%{ if not loop.last }%, %{ endif }%%{ endfor }%);
+## endif
+## endfor
+## if restore_calls:
+## for restore_call in restore_calls:
+    ${ restore_call }$
+## endfor
+## endif
+}

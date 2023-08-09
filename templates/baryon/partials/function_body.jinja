@@ -1,0 +1,9 @@
+{
+%{ if loads_xe_reg }%    size_t __baryon_nth_idx;
+%{ endif }%%{ if loads_vrs }%    size_t __baryon_num_vrs;
+    baryon_vr_t *__baryon_vrs[16];
+%{ endif }%%{ if loads_src }%    void *__baryon_src;
+    baryon_src_t __baryon_src_type;
+%{ endif }%%{ for declaration in declarations }%${ declaration }$
+%{ endfor }%%{ for instruction in instructions }%${ instruction }$
+%{ endfor }%}

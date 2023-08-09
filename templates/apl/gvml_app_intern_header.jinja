@@ -1,0 +1,24 @@
+${emit_copyright()}$
+
+#ifndef GVML_APP_INTERN_H
+#define GVML_APP_INTERN_H
+
+#include <gsi/libsys/types.h>
+
+#include "${ name }$-constants.h"
+
+## if reg_nyms|count > 1:
+struct ${ name }$_input {
+## for reg_nym in reg_nyms:
+## if loop.index > 1:
+  uint64_t ${ reg_nym }$;
+## endif
+## endfor
+} GSI_PACKED;
+## endif
+
+struct ${ name }$_output {
+  uint64_t ${ reg_nyms[0] }$;
+} GSI_PACKED;
+
+#endif /* GVML_APP_INTERN_H */

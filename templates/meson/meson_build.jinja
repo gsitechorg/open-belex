@@ -1,0 +1,20 @@
+## if target == "baryon":
+cc = meson.get_compiler('c')
+gsibaryon = cc.find_library('gsi-baryon-sys', dirs: get_option('baryon-prefix-path') + '/lib')
+test_belex_basic_tests_exec = executable('test_{{ prefix }}_{{ snippet_name }}',
+                                         '{{ snippet_name }}-utils.c',
+                                         '{{ snippet_name }}-module.c',
+                                         'test_{{ snippet_name }}.c',
+                                         'test_{{ snippet_name }}_main.c',
+                                         '{{ source_file }}',
+                                         include_directories: [],
+                                         c_args: [],
+                                         link_args: [
+                                           '-lpthread',
+                                           '-lm',
+                                           '-ldl'],
+                                         dependencies: [gsibaryon],
+                                         native: true)
+## endif
+
+test('{{ prefix }}_{{ snippet_name }}', test_belex_basic_tests_exec)

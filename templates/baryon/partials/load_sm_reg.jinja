@@ -1,0 +1,3 @@
+    ${ reg_nym }$ = seu_layer.sm_regs[${ reg_id }$];%{ if shift_width > 0 }%
+    ${ reg_nym }$ = (${ reg_nym }$ << ${ shift_width }$) & 0xFFFF;%{ endif }%%{ if invert }%
+    ${ reg_nym }$ = 0xFFFF - ${ reg_nym }$;%{ endif }%

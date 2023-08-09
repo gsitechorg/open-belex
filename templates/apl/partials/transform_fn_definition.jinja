@@ -1,0 +1,17 @@
+    def transform_${ underscore_id }$(self: "BLEIRTransformer", ${ underscore_id }$: ${ camel_case_id }$) -> ${ camel_case_id }$:
+        if not isinstance(${ underscore_id }$, ${ camel_case_id }$):
+            raise SyntacticError(f"Unsupported ${ underscore_id }$ type ({${ underscore_id }$.__class__.__name__}): {${ underscore_id }$}")
+%{- if is_enum }%
+        return ${ underscore_id }$
+%{- else }%
+%{ for call in calls }%${ call }$
+%{ endfor }%
+%{- if calls|length == 0 }%
+        return ${ underscore_id }$
+%{- else  }%
+        return ${ camel_case_id }$(
+%{- for field_id in field_ids }%
+            ${ field_id }$=${ field_id | lower }$${ "," if not loop.last }$
+%{- endfor }%)
+%{- endif -}%
+%{- endif -}%

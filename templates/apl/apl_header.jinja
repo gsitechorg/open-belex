@@ -1,0 +1,99 @@
+${ emit_copyright() }$
+
+#ifndef ${ name | upper }$_APL_FUNCS_APL_H
+#define ${ name | upper }$_APL_FUNCS_APL_H
+
+## if target == "baryon":
+#include <stdbool.h>
+#include <stddef.h>
+#include <stdint.h>
+## endif
+
+## if not explicit_frags_only:
+#include "${ name }$-constants.h"
+
+## for group in lowered_registers.values():
+## for reg in group:
+${ condef_register(reg) }$
+
+## endfor
+## endfor
+
+void belex_init(void);
+void belex_init_once(void);
+void belex_exit(void);
+
+static inline __attribute__((always_inline))
+uint8_t belex_gal_encode_l2_addr(uint32_t byte_idx, uint32_t bit_idx)
+{
+  return (uint8_t)((byte_idx << BELEX_L2_CTL_ROW_ADDR_BIT_IDX_BITS) | bit_idx);
+}
+
+static inline __attribute__((always_inline))
+uint16_t belex_gal_vm_reg_to_set_ext(int vm_reg,
+                                     uint32_t *parity_grp_p,
+                                     uint32_t *parity_row_p)
+{
+  uint32_t parity_set = vm_reg >> 1;
+  uint32_t parity_grp = vm_reg & 1;
+  uint32_t row = parity_set * BELEX_L1_VA_SET_ADDR_ROWS;
+  *parity_row_p = row + (2 * BELEX_VM_ROWS_PER_U16);
+  row += BELEX_VM_ROWS_PER_U16 * parity_grp;
+  *parity_grp_p = parity_grp;
+  return (uint16_t) row;
+}
+
+static inline __attribute__((always_inline))
+uint16_t belex_load_16_parity_mask(bool parity_grp)
+{
+  return (uint16_t)(0x0808 << parity_grp);
+}
+
+static inline __attribute__((always_inline))
+uint16_t belex_store_16_parity_mask(bool parity_grp)
+{
+  return (uint16_t)(0x0001 << (4 * parity_grp));
+}
+
+static inline __attribute__((always_inline))
+uint32_t belex_bank_group_row_to_addr(
+    uint32_t bank_id,
+    uint32_t group_id,
+    uint32_t row_id)
+{
+  return (bank_id << 11)
+    | (group_id << 9)
+    | row_id;
+}
+
+void belex_store_16(uint32_t vm_reg, uint32_t src);
+
+void belex_load_16(uint32_t dst, uint32_t vm_reg);
+
+void belex_store_vmr_16(uint32_t vm_reg,
+                        uint8_t l1_bank_id,
+                        bool l2_ready_set,
+                        uint8_t l2_start_byte);
+
+void belex_load_vmr_16(uint32_t vm_reg,
+                       uint8_t l1_bank_id,
+                       bool l2_ready_set,
+                       uint8_t l2_start_byte);
+
+## endif
+
+## for fragment in fragments:
+${ fragment }$
+
+## endfor
+
+## if not explicit_frags_only:
+
+## for fragment_caller_declaration in declarations:
+${ fragment_caller_declaration }$;
+
+## endfor
+
+## endif
+
+#endif /* ${ name | upper }$_APL_FUNCS_APL_H */

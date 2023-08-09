@@ -1,0 +1,22 @@
+${ emit_copyright() }$
+
+#ifndef BELEX_EXAMPLES_H
+#define BELEX_EXAMPLES_H
+
+#include "${ name }$-intern.h"
+
+#define BELEX_NUM_EXAMPLES ${ examples | length }$
+#define BELEX_NUM_PARAMS_PER_EXAMPLE ${ reg_nyms | count }$
+## for example in examples:
+## set outer_loop = loop
+
+static const uint16_t BELEX_EXAMPLE_${ loop.index - 1 }$[BELEX_NUM_PARAMS_PER_EXAMPLE][BELEX_NUM_PLATS_PER_APUC] = {
+## for parameter in example:
+  // Example ${ outer_loop.index - 1 }$, Parameter ${ loop.index - 1 }$ (${ reg_nyms[loop.index - 1] }$)
+  ${ parameter }$%{ if not loop.last }%,
+%{ endif }%
+## endfor
+};
+## endfor
+
+#endif /* BELEX_EXAMPLES_H */

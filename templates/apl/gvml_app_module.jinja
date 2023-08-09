@@ -1,0 +1,54 @@
+${emit_copyright()}$
+
+#include <stdint.h>
+
+#include <gsi/libsys.h>
+#include <gsi/libsys/log.h>
+
+#include <gsi/libgal.h>
+#include <gsi/gal-fast-funcs.h>
+
+#include "${ name }$-constants.h"
+#include "${ name }$-intern.h"
+#include "${ name }$-examples.h"
+#include "${ name }$-utils.h"
+#include "${ header_file }$"
+
+## if target == "apl":
+GAL_INCLUDE_INIT_TASK;
+
+GAL_TASK_ENTRY_POINT(${ name }$_module, in_buf, out_buf)
+## else:
+int ${ name }$_module(void *in_buf, void *out_buf)
+## endif
+{
+  gsi_info("\nRunning test_${ prefix }$_${ name }$");
+  belex_init_once();
+  gal_fast_l2dma_async_memcpy_init(0);
+  gal_fast_l2dma_async_memcpy_init(1);
+## if reg_nyms|count > 1:
+  // Input Buffer
+  struct ${ name }$_input * p_in = (struct ${ name }$_input *)in_buf;
+## endif
+  // Output Buffer
+  struct ${ name }$_output * p_out = (struct ${ name }$_output *)out_buf;
+  uint16_t *target;
+## for reg_num in range(reg_nyms|count - 1, -1, -1):
+## set reg_nym = reg_nyms[reg_num]
+## set row_number = row_numbers[reg_num]
+  // Initializing ${ reg_nym }$
+  uint16_t vreg_${ reg_nym }$ = ${ row_number }$;
+## if reg_num > 0:
+  target = gal_mem_handle_to_apu_ptr(p_in->${ reg_nym }$);
+  belex_dma_mem_to_vr(vreg_${ reg_nym }$, target, BELEX_NUM_PLATS_PER_APUC);
+## endif
+## endfor
+  // Making fragment caller and belex calls
+## for fragment_caller_or_belex_call in calls:
+  ${ fragment_caller_or_belex_call }$
+## endfor
+  // Collecting return values
+  target = gal_mem_handle_to_apu_ptr(p_out->${ reg_nyms[0] }$);
+  belex_dma_vr_to_mem(target, vreg_${ reg_nyms[0] }$, BELEX_NUM_PLATS_PER_APUC);
+  return BELEX_EXIT_SUCCESS;
+}

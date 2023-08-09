@@ -1,0 +1,9 @@
+    ${ reg_nym }$ = seu_layer.re_regs[${ reg_id }$];%{ if shift_width > 0 }%
+    ${ reg_nym }$ = (${ reg_nym }$ << ${ shift_width }$) & 0xFFFFFF;%{ endif }%%{ if invert }%
+    ${ reg_nym }$ = 0xFFFFFF - ${ reg_nym }$;%{ endif }%
+    __baryon_num_vrs = baryon_count_re_rows(${ reg_nym }$);
+    __baryon_nth_idx = 0;
+    baryon_foreach_re_row(${ reg_nym }$, row_number, {
+        __baryon_vrs[__baryon_nth_idx] = &apuc.vrs[row_number];
+        __baryon_nth_idx += 1;
+    });

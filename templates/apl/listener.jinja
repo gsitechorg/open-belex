@@ -1,0 +1,18 @@
+import builtins
+
+from BLEIR import (
+%{- for kind in imports }%
+    ${ kind }$,
+%{- endfor }%
+    SyntacticError,
+)
+
+class BLEIRListener:%{ for enter_fn, exit_fn in definitions }%
+
+${ enter_fn }$
+
+${ exit_fn -}$
+%{ endfor -}%
+## if definitions|length == 0:
+    pass
+## endif

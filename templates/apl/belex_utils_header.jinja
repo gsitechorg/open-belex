@@ -1,0 +1,93 @@
+${ emit_copyright() }$
+
+#ifndef __${ name | upper }$_UTILS_H__
+#define __${ name | upper }$_UTILS_H__
+
+## if target == "baryon":
+#include <stddef.h>
+
+#include <gsi/libgal.h>
+## endif
+
+#ifndef MIN
+#define MIN(a, b) ((a) < (b) ? (a) : (b))
+#endif // MIN
+
+static inline void belex_l2dma_l2_ready_rst_all(void)
+{
+  gal_fast_l2dma_l2_ready_rst_all();
+}
+
+static inline
+gal_l2dma_hndl_t *belex_l2dma_mem_to_l2_start(
+    uint32_t apc_id, uint32_t num_transactions,
+    struct gal_fast_l2dma_l4_l2_transaction *transactions,
+    enum gal_l2dma_cmd_attr l2_ready_attr)
+{
+## if target == "apl":
+#ifdef APUC_TYPE_hw
+  gal_fast_l2dma_mem_to_l2_start(apc_id, num_transactions, transactions, l2_ready_attr);
+  return NULL;
+#else
+  struct gal_l2dma_l4_l2_transaction trans[num_transactions];
+
+  memset(trans, 0, sizeof(*trans) * num_transactions);
+
+  for(uint32_t i = 0; i < num_transactions; ++i) {
+    trans[i].l4_addr = transactions[i].l4_addr;
+    trans[i].l2_mode = transactions[i].l2_mode;
+    trans[i].num_steps = transactions[i].num_steps;
+    trans[i].step_size_num_64b_chunk = transactions[i].step_size_num_512b_chunk * 8;
+    trans[i].l2_addr.l2_col_group = transactions[i].l2_col_group;
+  }
+
+  return gal_l2dma_mem_to_l2_start(apc_id, num_transactions, trans, l2_ready_attr);
+#endif
+## else:
+  gal_fast_l2dma_mem_to_l2_start(apc_id, num_transactions, transactions, l2_ready_attr);
+  return NULL;
+## endif
+}
+
+static inline
+bool belex_l2dma_sync(gal_l2dma_hndl_t *ioxs, uint32_t apc_id, bool do_blocking)
+{
+  return gal_fast_l2dma_sync(ioxs, apc_id, do_blocking);
+}
+
+static inline
+gal_l2dma_hndl_t *belex_l2dma_l2_to_mem_start(
+    uint32_t apc_id, uint32_t num_transactions,
+    struct gal_fast_l2dma_l4_l2_transaction *transactions,
+    enum gal_l2dma_cmd_attr l2_ready_attr)
+{
+## if target == "apl":
+#ifdef APUC_TYPE_hw
+  gal_fast_l2dma_l2_to_mem_start(apc_id, num_transactions, transactions, l2_ready_attr);
+  return NULL;
+#else
+  struct gal_l2dma_l4_l2_transaction trans[num_transactions];
+
+  memset(trans, 0, sizeof(*trans) * num_transactions);
+
+  for(uint32_t i = 0; i < num_transactions; ++i) {
+    trans[i].l4_addr = transactions[i].l4_addr;
+    trans[i].l2_mode = transactions[i].l2_mode;
+    trans[i].num_steps = transactions[i].num_steps;
+    trans[i].step_size_num_64b_chunk = transactions[i].step_size_num_512b_chunk * 8;
+    trans[i].l2_addr.l2_col_group = transactions[i].l2_col_group;
+  }
+
+  return gal_l2dma_l2_to_mem_start(apc_id, num_transactions, trans, l2_ready_attr);
+#endif
+## else:
+  gal_fast_l2dma_l2_to_mem_start(apc_id, num_transactions, transactions, l2_ready_attr);
+  return NULL;
+## endif
+}
+
+void belex_dma_mem_to_vr(uint32_t dest_vp, uint16_t *vec_16b, int size_16);
+
+void belex_dma_vr_to_mem(uint16_t *vec_16b, uint32_t src_vp, int size_16);
+
+#endif /* __${ name | upper }$_UTILS_H__ */
