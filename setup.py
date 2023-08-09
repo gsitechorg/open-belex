@@ -24,7 +24,7 @@ def recursively_collect_data_files(
             local_data_files.append(str(candidate))
 
     if len(local_data_files) > 0:
-        global_data_files.append((f"share/belex/{directory}", local_data_files))
+        global_data_files.append((f"share/open-belex/{directory}", local_data_files))
 
     return global_data_files
 
