@@ -31,6 +31,7 @@ from warnings import warn
 
 from open_belex.bleir.types import bleir_dataclass
 from open_belex.common.types import Indices
+from open_belex.literal import RESERVED_IDENTIFIERS
 from open_belex.renderable import Renderable, Renderer, Rendition
 from open_belex.utils.section_utils import parse_sections
 
@@ -423,7 +424,6 @@ class SymbolTable:
                             symstr: str,
                             is_temp: bool = False) -> Variable:
 
-        global RESERVED_IDENTIFIERS
         if symstr in RESERVED_IDENTIFIERS:
             raise ValueError(f"{symstr} is reserved, please choose another name.")
 

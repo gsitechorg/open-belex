@@ -100,7 +100,7 @@ class SnippetBuilder:
 
         target = self.vm.target
 
-        if target == "baryon"
+        if target == "baryon":
             source_file = f"{name}-funcs.c"
             header_file = f"{name}-funcs.h"
         else:

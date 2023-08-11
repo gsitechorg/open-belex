@@ -727,7 +727,7 @@ class Belex(BleirSerializable):
 
     def __post_init__(self: "Belex") -> None:
         if self.debug and self.parent is None:
-            from belex.bleir.interpreters import BLEIRInterpreter
+            from open_belex.bleir.interpreters import BLEIRInterpreter
             if BLEIRInterpreter.has_context():
                 self.interpreter = BLEIRInterpreter.context()
             else:
@@ -3068,7 +3068,7 @@ def belex_apl(fn: Optional[Callable] = None, **manual_allocs) -> Callable:
                 debug_parameters.append(debug_parameter)
 
             # NOTIFY HERE
-            from belex.bleir.interpreters import BLEIRInterpreter
+            from open_belex.bleir.interpreters import BLEIRInterpreter
             if BLEIRInterpreter.has_context():
                 interpreter = BLEIRInterpreter.context()
                 if len(interpreter.subject.observers) > 0:
