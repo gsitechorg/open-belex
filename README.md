@@ -1,56 +1,45 @@
-# BELEX (Open Source)
+# Belex (Open Source)
 
 Belex is the Bit-Engine Language of Expressions.
 
-Version of 08 Aug 2023
+Version of 10 Aug 2023
 
 This documentation covers the core classes and functions of Belex.
 
-# PYTHON REQUIREMENTS
+# Initialization
 
-Connect to the GSI server network; VPN recommended.
-
-Make sure you have a virtual environment of some kind that has the
-necessary Python packages installed. Here is an example using
-`venv`, but `conda` works just as well:
+At the moment, only conda environments are supported. The following shows how
+to set up yours:
 
 ```bash
-  cd ~/GSI  # or wherever you likd to keep your project directories
+# location of your project directories
+WORKSPACE="$HOME/tmp"
+mkdir -p "$WORKSPACE"
+cd "$WORKSPACE"
 
-  # Clone the Belex repositories (choose the same branch for all repositories):
-  # 1. "--branch master" -> clone latest release code
-  # 2. "--branch develop" -> (recommended) clone latest development code
-  git clone --branch develop git@bitbucket.org:gsitech/belex.git
-  git clone --branch develop git@bitbucket.org:gsitech/belex-libs.git
-  git clone --branch develop git@bitbucket.org:gsitech/belex-tests.git
+# Clone the Belex repositories (choose the same branch for all repositories):
+# 1. "master" -> clone latest release code
+# 2. "develop" -> clone latest development code
+DEFAULT_BRANCH="develop"
+BELEX_BRANCH="$DEFAULT_BRANCH"
 
-  # Initialize your virtual environment
-  cd ~/GSI/belex-tests  # or wherever you cloned the belex-tests repo
-  python -m venv venv  # you need Python>=3.8, 3.9.7 recommended
-  source venv/bin/activate
+git clone --branch "$BELEX_BRANCH" git@bitbucket.org:gsitech/open-belex.git
 
-  cd ~/GSI/belex  # or wherever you cloned the belex repo
-  pip install -e .
+# Create the conda environment
+cd "$WORKSPACE/open-belex"
+mamba env create --force -f environment.yml
 
-  cd ~/GSI/belex-libs  # or wherever you cloned the belex-libs repo
-  pip install -e .
+conda activate open-belex
 
-  cd ~/GSI/belex-tests  # or wherever you cloned the belex-tests repo
-  pip install -e .
-
-  pip install --upgrade ninja
-  pip install \
-      --upgrade \
-      --index-url http://192.168.42.9:8081/repository/gsi-pypi/simple \
-      --trusted-host 192.168.42.9 \
-      meson
+pip install \
+  -e "$WORKSPACE/open-belex"
 ```
 
-# COMMAND SYNTAX
+# Command Syntax
 
 ## SRC
 
-### \<SRC\>
+### <SRC>
 
 In a command, `<SRC>` may be any one of the following.
 
@@ -63,7 +52,7 @@ In a command, `<SRC>` may be any one of the following.
     GGL
     RSP16
 
-### ~\<SRC\>
+### ~<SRC>
 
 In a command, `~<SRC>` may be any one of the following.
 
@@ -76,7 +65,7 @@ In a command, `~<SRC>` may be any one of the following.
     INV_GGL
     INV_RSP16
 
-## \<SB\>
+## <SB>
 
 Up to three SB numbers (row numbers) may appear in an `<SB>` expression.
 Semantically, the contents are combined Implicitly via AND when `SB` appears on
@@ -87,7 +76,7 @@ parallel assignment to all SB numbers (row numbers) is implied.
     SB[x, y]
     SB[x, y, z]
 
-## WRITE LOGIC
+## WRITE Logic
 
     SB[x] = <SRC>
     SB[x,y] = <SRC>
@@ -105,10 +94,10 @@ parallel assignment to all SB numbers (row numbers) is implied.
     SB[x,y] ?= ~<SRC>     # OR-equal
     SB[x,y,z] ?= ~<SRC>   # OR-equal
 
-## READ LOGIC
+## READ Logic
 
 `<BIT>` is either a literal 1 or a literal 0, with no quote marks.
-`&` means AND, `|` means OR, `^` means XOR. `&=`, `\=`, and `^=`
+`&` means AND, `|` means OR, `^` means XOR. `&=`, `=`, and `^=`
 are destructive assignment operators, as in the C language.
 
     RL = <BIT>            # READ LOGIG #1 and #2
@@ -145,7 +134,7 @@ are destructive assignment operators, as in the C language.
 
     RL = ~<SB> & ~<SRC>
 
-## R-SEL (BROADCAST) LOGIC
+## R-SEL (BROADCAST) Logic
 
     GL = RL               # R-SEL LOGIC
     GGL = RL              # R-SEL LOGIC
@@ -157,93 +146,3 @@ are destructive assignment operators, as in the C language.
 
     RWINH_SET
     RWINH_RST
-
-# MODULES OVERVIEW
-
-## APL
-
-```{eval-rst}
-.. toctree::
-.. automodule:: belex.apl
-   :members:
-```
-
-## APL OPTIMIZATIONS
-
-```{eval-rst}
-.. toctree::
-.. automodule:: belex.apl_optimizations
-   :members:
-```
-
-## COMPILER
-
-```{eval-rst}
-.. toctree::
-.. automodule:: belex.compiler
-   :members:
-```
-
-## DECORATORS
-
-```{eval-rst}
-.. toctree::
-.. automodule:: belex.decorators
-   :members:
-```
-
-## DIRECTED GRAPH
-
-```{eval-rst}
-.. toctree::
-.. automodule:: belex.directed_graph
-   :members:
-```
-
-## EXPRESSIONS
-
-```{eval-rst}
-.. toctree::
-.. automodule:: belex.expressions
-   :members:
-```
-
-## INTERMEDIATE REPRESENTATION
-
-```{eval-rst}
-.. toctree::
-.. automodule:: belex.intermediate_representation
-   :members:
-```
-
-## LANING
-
-```{eval-rst}
-.. toctree::
-.. automodule:: belex.laning
-   :members:
-```
-
-## LITERAL
-
-```{eval-rst}
-.. toctree::
-.. automodule:: belex.literal
-   :members:
-```
-
-## REGISTER ALLOCATION
-
-```{eval-rst}
-.. toctree::
-.. automodule:: belex.register_allocation
-   :members:
-```
-
-## RENDERABLE
-
-```{eval-rst}
-.. toctree::
-.. automodule:: belex.renderable
-   :members:
-```

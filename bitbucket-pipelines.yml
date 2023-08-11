@@ -3,7 +3,7 @@ pipelines:
   default:
     - parallel:
       - step:
-          name: test-belex-default-python
+          name: test-open-belex-default-python
           script:
             - wget https://github.com/conda-forge/miniforge/releases/latest/download/Mambaforge-Linux-x86_64.sh
             - bash Mambaforge-Linux-x86_64.sh -b
@@ -11,15 +11,15 @@ pipelines:
             - source ~/.bashrc
             - git clone git@bitbucket.org:gsitech/conda_channel.git
             - conda config --set custom_channels.gsi file://$PWD/conda_channel
-            - git clone --branch develop git@bitbucket.org:gsitech/belex-libs.git
-            - git clone --branch develop git@bitbucket.org:gsitech/belex-tests.git
-            - cd belex-tests
-            - mamba env create -f environment_emulation.yml
-            - conda activate belex-test_emulation
-            - pip install .. ../belex-libs .
+            - git clone --branch develop git@bitbucket.org:gsitech/open-belex-libs.git
+            - git clone --branch develop git@bitbucket.org:gsitech/open-belex-tests.git
+            - cd open-belex-tests
+            - mamba env create -f environment.yml
+            - conda activate open-belex-test
+            - pip install .. ../open-belex-libs .
             - pytest -n 4 --max-worker-restart 0 --capture no --verbose -r A --full-trace --durations=0
       - step:
-          name: test-belex-default-baryon
+          name: test-open-belex-default-baryon
           script:
             - wget https://github.com/conda-forge/miniforge/releases/latest/download/Mambaforge-Linux-x86_64.sh
             - bash Mambaforge-Linux-x86_64.sh -b
@@ -27,18 +27,18 @@ pipelines:
             - source ~/.bashrc
             - git clone git@bitbucket.org:gsitech/conda_channel.git
             - conda config --set custom_channels.gsi file://$PWD/conda_channel
-            - git clone --branch develop git@bitbucket.org:gsitech/belex-libs.git
-            - git clone --branch develop git@bitbucket.org:gsitech/belex-tests.git
-            - cd belex-tests
-            - mamba env create -f environment_emulation.yml
-            - conda activate belex-test_emulation
-            - pip install .. ../belex-libs .
-            - DEBUG_MODE=true belex-test -t baryon
+            - git clone --branch develop git@bitbucket.org:gsitech/open-belex-libs.git
+            - git clone --branch develop git@bitbucket.org:gsitech/open-belex-tests.git
+            - cd open-belex-tests
+            - mamba env create -f environment.yml
+            - conda activate open-belex-test
+            - pip install .. ../open-belex-libs .
+            - DEBUG_MODE=true open-belex-test -t baryon
   branches:
     master:
       - parallel:
         - step:
-            name: test-belex-default-python
+            name: test-open-belex-default-python
             script:
               - wget https://github.com/conda-forge/miniforge/releases/latest/download/Mambaforge-Linux-x86_64.sh
               - bash Mambaforge-Linux-x86_64.sh -b
@@ -46,15 +46,15 @@ pipelines:
               - source ~/.bashrc
               - git clone git@bitbucket.org:gsitech/conda_channel.git
               - conda config --set custom_channels.gsi file://$PWD/conda_channel
-              - git clone --branch master git@bitbucket.org:gsitech/belex-libs.git
-              - git clone --branch master git@bitbucket.org:gsitech/belex-tests.git
-              - cd belex-tests
-              - mamba env create -f environment_emulation.yml
-              - conda activate belex-test_emulation
-              - pip install .. ../belex-libs .
+              - git clone --branch master git@bitbucket.org:gsitech/open-belex-libs.git
+              - git clone --branch master git@bitbucket.org:gsitech/open-belex-tests.git
+              - cd open-belex-tests
+              - mamba env create -f environment.yml
+              - conda activate open-belex-test
+              - pip install .. ../open-belex-libs .
               - pytest -n 4 --max-worker-restart 0 --capture no --verbose -r A --full-trace --durations=0
         - step:
-            name: test-belex-default-baryon
+            name: test-open-belex-default-baryon
             script:
               - wget https://github.com/conda-forge/miniforge/releases/latest/download/Mambaforge-Linux-x86_64.sh
               - bash Mambaforge-Linux-x86_64.sh -b
@@ -62,10 +62,10 @@ pipelines:
               - source ~/.bashrc
               - git clone git@bitbucket.org:gsitech/conda_channel.git
               - conda config --set custom_channels.gsi file://$PWD/conda_channel
-              - git clone --branch master git@bitbucket.org:gsitech/belex-libs.git
-              - git clone --branch master git@bitbucket.org:gsitech/belex-tests.git
-              - cd belex-tests
-              - mamba env create -f environment_emulation.yml
-              - conda activate belex-test_emulation
-              - pip install .. ../belex-libs .
-              - DEBUG_MODE=true belex-test -t baryon
+              - git clone --branch master git@bitbucket.org:gsitech/open-belex-libs.git
+              - git clone --branch master git@bitbucket.org:gsitech/open-belex-tests.git
+              - cd open-belex-tests
+              - mamba env create -f environment.yml
+              - conda activate open-belex-test
+              - pip install .. ../open-belex-libs .
+              - DEBUG_MODE=true open-belex-test -t baryon
