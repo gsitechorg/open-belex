@@ -33,7 +33,7 @@ pipelines:
             - mamba env create -f environment.yml
             - conda activate open-belex-test
             - pip install .. ../open-belex-libs .
-            - DEBUG_MODE=true open-belex-test -t baryon
+            - DEBUG_MODE=true belex-test -t baryon
   branches:
     master:
       - parallel:
@@ -68,4 +68,4 @@ pipelines:
               - mamba env create -f environment.yml
               - conda activate open-belex-test
               - pip install .. ../open-belex-libs .
-              - DEBUG_MODE=true open-belex-test -t baryon
+              - DEBUG_MODE=true belex-test -t baryon
