@@ -17,7 +17,6 @@ ${emit_copyright()}$
 
 #define NUM_FAILURES_TO_VIEW 5
 
-## if target == "apl":
 static void encode_for_l2t(uint16_t target[BELEX_NUM_PLATS_PER_APUC], uint16_t source[BELEX_NUM_PLATS_PER_APUC]) {
   // Encoding scheme for GAL_L2T_MODE_64
   for (size_t m = 0; m < 4; m += 1) {
@@ -41,7 +40,6 @@ static void decode_for_l2t(uint16_t target[BELEX_NUM_PLATS_PER_APUC], uint16_t s
     }
   }
 }
-## endif
 
 static void repeat(char c, size_t num_times) {
   for (size_t i = 0; i < num_times; i += 1) {
@@ -113,12 +111,8 @@ int run_${ name }$_test(gdl_context_handle_t ctx_id, uint16_t (*example)[BELEX_N
   int ret = BELEX_EXIT_SUCCESS;
 
   static const size_t vr_size = BELEX_NUM_PLATS_PER_APUC * sizeof(uint16_t);
-## if target == "apl":
   static uint16_t encoded[BELEX_NUM_PLATS_PER_APUC];
   static uint16_t decoded[BELEX_NUM_PLATS_PER_APUC];
-## else:
-  static uint16_t vr[BELEX_NUM_PLATS_PER_APUC];
-## endif
 
 ## if reg_nyms|count > 1:
   // Input Buffer
@@ -140,12 +134,8 @@ int run_${ name }$_test(gdl_context_handle_t ctx_id, uint16_t (*example)[BELEX_N
 ## if loop.index > 1:
   p_in->${ reg_nym }$ =
     gdl_mem_alloc_aligned(ctx_id, vr_size, GDL_CONST_MAPPED_POOL, GDL_ALIGN_64);
-## if target == "apl":
   encode_for_l2t(encoded, example[${ loop.index - 1}$]);
   gdl_mem_cpy_to_dev(p_in->${ reg_nym }$, encoded, vr_size);
-## else:
-  gdl_mem_cpy_to_dev(p_in->${ reg_nym }$, example[${ loop.index - 1}$], vr_size);
-## endif
 ## endif
 ## endfor
 
@@ -173,12 +163,8 @@ int run_${ name }$_test(gdl_context_handle_t ctx_id, uint16_t (*example)[BELEX_N
   int task_ret = ${ name }$_module(%{ if reg_nyms|count > 1 }%(void *) in_buf%{ else }%GDL_MEM_HANDLE_NULL%{ endif }%, (void *) out_buf);
 ## endif
 
-## if target == "apl":
   gdl_mem_cpy_from_dev(encoded, p_out->${ reg_nyms[0] }$, vr_size);
   decode_for_l2t(decoded, encoded);
-## else:
-  gdl_mem_cpy_from_dev(vr, p_out->${ reg_nyms[0] }$, vr_size);
-## endif
 
 ## if print_params:
 ## for reg_nym in reg_nyms[1:]:
@@ -194,7 +180,7 @@ int run_${ name }$_test(gdl_context_handle_t ctx_id, uint16_t (*example)[BELEX_N
 
   printf("\n");
   printf("[DEBUG] Actual Values (${ reg_nyms[0] }$): plats [%u, %u)\n", 0, WINDOW_SIZE);
-  glass(%{ if target == "apl" }%decoded%{ else }%vr%{ endif }%, 0, WINDOW_SIZE);
+  glass(decoded, 0, WINDOW_SIZE);
 
   printf("\n");
 
@@ -208,7 +194,7 @@ int run_${ name }$_test(gdl_context_handle_t ctx_id, uint16_t (*example)[BELEX_N
 ## endif
     for (size_t j = 0; j < BELEX_NUM_PLATS_PER_APUC; j += 1) {
       const uint16_t expected_value = example[0][j];
-      const uint16_t actual_value = %{ if target == "apl" }%decoded%{ else }%vr%{ endif }%[j];
+      const uint16_t actual_value = decoded[j];
       if (expected_value != actual_value) {
 ## if not should_fail:
         num_failures += 1;
@@ -234,7 +220,7 @@ int run_${ name }$_test(gdl_context_handle_t ctx_id, uint16_t (*example)[BELEX_N
             lower = BELEX_NUM_PLATS_PER_APUC - WINDOW_SIZE;
             upper = BELEX_NUM_PLATS_PER_APUC;
           }
-          glass(%{ if target == "apl" }%decoded%{ else }%vr%{ endif }%, lower, upper);
+          glass(decoded, lower, upper);
           highlight(lower, upper, j);
           printf("\n");
         }
