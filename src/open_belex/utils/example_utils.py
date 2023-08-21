@@ -9,6 +9,10 @@ import numpy as np
 from open_belex.common.constants import NUM_PLATS_PER_APUC, NSECTIONS
 
 
+BITS_PER_NIBBLE: int = 4
+NIBBLES_PER_SECTION: int = NUM_PLATS_PER_APUC // BITS_PER_NIBBLE
+
+
 def convert_to_u16(diri_vr: np.ndarray) -> np.ndarray:
     """Transforms a DIRI VR into a representation suitable for C-sim.
 
@@ -82,3 +86,10 @@ def u16_to_bool(value: np.uint16,
     for section in range(NSECTIONS):
         plat[section] = (value >> section) & 0x0001
     return np.tile(plat, (num_plats, 1))
+
+
+def section_wise_nibble(value: int) -> np.ndarray:
+    nibble = np.ndarray(BITS_PER_NIBBLE, dtype=bool)
+    for bit in range(BITS_PER_NIBBLE):
+        nibble[bit] = (value >> bit) & 0x0001
+    return np.tile(nibble, NIBBLES_PER_SECTION)
