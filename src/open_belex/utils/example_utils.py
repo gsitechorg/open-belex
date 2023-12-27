@@ -80,6 +80,28 @@ def u16_to_vr(value: np.uint16) -> np.ndarray:
     return np.repeat(value, NUM_PLATS_PER_APUC).astype(np.uint16)
 
 
+def index_vr(nplats: int) -> np.ndarray:
+    """As with exercise 8, create a VR-shaped array with 0 in plat 0,
+    1 in plat 1, etc., up to nplats, exclusive."""
+    assert nplats <= NUM_PLATS_PER_APUC
+    vr = np.zeros((NSECTIONS, NUM_PLATS_PER_APUC), dtype=bool)
+    for plat in range(nplats):
+        for section in range(NSECTIONS):
+            vr[section, plat] = (plat >> section) & 0x0001
+    return vr
+
+
+def littlendian_bools_to_u16_platwise(vr : np.ndarray, nplats: int) -> np.ndarray:
+    assert nplats <= NUM_PLATS_PER_APUC
+    result = np.zeros(nplats, dtype=np.uint16)
+    for plat in range(nplats):
+        temp: int = 0
+        for section in range(NSECTIONS):
+            temp |= (vr[section, plat] << section)
+        result[plat] = int(temp)
+    return result
+
+
 def u16_to_bool(value: np.uint16,
                 num_plats: int = NUM_PLATS_PER_APUC) -> np.ndarray:
     plat = np.ndarray(NSECTIONS, dtype=bool)
@@ -93,3 +115,52 @@ def section_wise_nibble(value: int) -> np.ndarray:
     for bit in range(BITS_PER_NIBBLE):
         nibble[bit] = (value >> bit) & 0x0001
     return np.tile(nibble, NIBBLES_PER_SECTION)
+
+
+NIBBLES_PER_BYTE = 2
+BITS_PER_BYTE    = NIBBLES_PER_BYTE * BITS_PER_NIBBLE
+
+
+def littlendian_section_wise_from_i8s(values: np.ndarray) -> np.ndarray:
+    len_ = min(len(values), NUM_PLATS_PER_APUC // 8)
+    section = np.zeros(NUM_PLATS_PER_APUC, dtype=bool)
+    for byte in range(len_):
+        for bit in range(BITS_PER_BYTE):
+            idx = (BITS_PER_BYTE * byte) + bit
+            section[idx] = (values[byte] >> bit) & 0x0001
+    return section
+
+
+def littlendian_section_wise_from_bytes(values: bytes) -> np.ndarray:
+    """Typically for BHV vectors of length 8192 bits, or
+    1024 8-bit bytes."""
+    assert NUM_PLATS_PER_APUC == 32_768
+    len_ = min(len(values), NUM_PLATS_PER_APUC // 8)
+    section = np.zeros(NUM_PLATS_PER_APUC, dtype=bool)
+    for byte in range(len_):
+        for bit in range(BITS_PER_BYTE):
+            idx = (BITS_PER_BYTE * byte) + bit
+            section[idx] = (values[byte] >> bit) & 0x0001
+    return section
+
+
+def bytes_from_section_array(arr: np.ndarray, nbytes: int) -> bytes:
+    result : bytes = bytearray(nbytes)
+    for byte in range(nbytes):
+        value : int = 0
+        for bit in range(BITS_PER_BYTE):
+            idx = (BITS_PER_BYTE * byte) + bit
+            value |= (arr[idx] << bit)
+        result[byte] = value
+    return result
+
+
+def littlendian_int8s_from_section_array(arr: np.ndarray, nbytes: int) -> np.ndarray:
+    result : np.ndarray = np.zeros(nbytes, dtype=int)
+    for byte in range(nbytes):
+        value : int = 0
+        for bit in range(BITS_PER_BYTE):
+            idx = (BITS_PER_BYTE * byte) + bit
+            value |= (arr[idx] << bit)
+        result[byte] = value
+    return result

@@ -1317,6 +1317,12 @@ class GlassOrder(BleirEnum):
     MOST_SIGNIFICANT_BIT_FIRST = "msb"
 
 
+class GlassOrientation(BleirEnum):
+    PLAT_WISE = "plat-wise"
+    SECTION_WISE = "section-wise"
+    # VR_WISE = "vr-wise"
+
+
 @immutable
 class GlassStatement(NamedTuple):
     subject: Glassible
@@ -1329,6 +1335,7 @@ class GlassStatement(NamedTuple):
     rewrite: Optional[Dict[str, str]]
     file_path: Optional[str] = None
     line_number: int = -1
+    orientation: GlassOrientation = GlassOrientation.PLAT_WISE
 
     @property
     def right_operands(self: "GlassStatement") -> List[str]:

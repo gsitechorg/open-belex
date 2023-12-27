@@ -30,8 +30,8 @@ from open_belex.bleir.types import (ASSIGN_OP, ASSIGNMENT, BINARY_EXPR, BINOP,
                                     ExtendedRegister, FormalParameter,
                                     Fragment, FragmentCaller,
                                     FragmentCallerCall, GlassFormat, Glassible,
-                                    GlassOrder, GlassStatement, LineComment,
-                                    LXParameter, LXRegWithOffsets,
+                                    GlassOrder, GlassOrientation, GlassStatement,
+                                    LineComment, LXParameter, LXRegWithOffsets,
                                     MultiStatement, Operation,
                                     Operation_or_LineComment, ReadWriteInhibit,
                                     RegisterParameter, Snippet)
@@ -704,36 +704,66 @@ class BLEIRInterpreter(BLEIRVisitor):
         rows = []
 
         if glass_statement.fmt is GlassFormat.HEX:
-            num_nibbles = max(num_balloon_sections // 4, 1)
-            num_secs_per_nibble = min(num_balloon_sections, 4)
+            if glass_statement.orientation is GlassOrientation.PLAT_WISE:
+                num_nibbles = max(num_balloon_sections // 4, 1)
+                num_secs_per_nibble = min(num_balloon_sections, 4)
 
-            for nibble_index in range(num_nibbles):
-                lower_nibble = nibble_index * num_secs_per_nibble
-                upper_nibble = lower_nibble + num_secs_per_nibble
+                for nibble_index in range(num_nibbles):
+                    lower_nibble = nibble_index * num_secs_per_nibble
+                    upper_nibble = lower_nibble + num_secs_per_nibble
 
-                if glass_statement.order is GlassOrder.LEAST_SIGNIFICANT_BIT_FIRST:
-                    nibble_range = list(range(lower_nibble, upper_nibble))
-                elif glass_statement.order is GlassOrder.MOST_SIGNIFICANT_BIT_FIRST:
-                    nibble_range = list(range(-upper_nibble, -lower_nibble))
-                else:
-                    raise ValueError(
-                        f"Unsupported glass order: {glass_statement.order}")
+                    if glass_statement.order is GlassOrder.LEAST_SIGNIFICANT_BIT_FIRST:
+                        nibble_range = list(range(lower_nibble, upper_nibble))
+                    elif glass_statement.order is GlassOrder.MOST_SIGNIFICANT_BIT_FIRST:
+                        nibble_range = list(range(-upper_nibble, -lower_nibble))
+                    else:
+                        raise ValueError(
+                            f"Unsupported glass order: {glass_statement.order}")
 
-                row = np.zeros(len(plats), dtype=np.uint16)
-                for shift, section in enumerate(nibble_range):
-                    if section < 0:
-                        section = num_balloon_sections + section
-                        shift = num_secs_per_nibble - shift - 1
-                    section //= num_sect_repeats
-                    if section in sections:
-                        nibble_section = next(view)
-                        row |= (nibble_section << shift)
+                    row = np.zeros(len(plats), dtype=np.uint16)
+                    for shift, section in enumerate(nibble_range):
+                        if section < 0:
+                            section = num_balloon_sections + section
+                            shift = num_secs_per_nibble - shift - 1
+                        section //= num_sect_repeats
+                        if section in sections:
+                            nibble_section = next(view)
+                            row |= (nibble_section << shift)
 
-                row = np.array2string(row,
-                                      formatter=hex_formatter,
-                                      max_line_width=np.inf)
+                    row = np.array2string(row,
+                                          formatter=hex_formatter,
+                                          max_line_width=np.inf)
 
-                rows.append(row)
+                    rows.append(row)
+
+            elif glass_statement.orientation is GlassOrientation.SECTION_WISE:
+                for section in sections:
+                    row = []
+                    prev_plat = None
+                    prev_lower_plat = None
+                    for plat in plats:
+                        # Cases:
+                        # 1: plat_i == plat_(i-1) => reprint or inc count
+                        # 2: plat_i != plat_(i-1), nibble_i == nibble_(i-1) => skip
+                        # 3: plat_i != plat_(i-1), nibble_i != nibble_(i-1) => print
+                        lower_plat = plat - (plat % 4)
+                        if plat == prev_plat or lower_plat != prev_lower_plat:
+                            upper_plat = lower_plat + 4
+                            nibble = 0x0
+                            for bit in range(lower_plat, upper_plat):
+                                if bit in plats:
+                                    value = subject[bit, section]
+                                    nibble |= (value << (bit - lower_plat))
+                            row.append(f"{nibble:X}")
+                        prev_plat = plat
+                        prev_lower_plat = lower_plat
+                    row = " ".join(row)
+                    rows.append(f"[{row}]")
+
+            else:
+                raise ValueError(
+                    f"Unsupported glass orientation: "
+                    f"{glass_statement.orientation}")
 
         else:
             if glass_statement.order is GlassOrder.LEAST_SIGNIFICANT_BIT_FIRST:

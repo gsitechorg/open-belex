@@ -1113,20 +1113,25 @@ class ParameterLowerizer(BLEIRListener, BLEIRTransformer):
         lowered_parameters_by_value \
             = self.lowered_parameters_by_value(SM_REG)
 
-        if sm_reg.constant_value in lowered_parameters_by_value:
-            lowered_parameter = lowered_parameters_by_value[sm_reg.constant_value]
+        mask = sm_reg.constant_value
+        if sm_reg.is_section:
+            mask = (0x0001 << mask)
+
+        if mask in lowered_parameters_by_value:
+            lowered_parameter = lowered_parameters_by_value[mask]
         else:
             lowered_parameter = SM_REG(
-                identifier=f"SM_0X{sm_reg.constant_value:04X}",
+                identifier=f"SM_0X{mask:04X}",
                 is_lowered=True,
-                constant_value=sm_reg.constant_value)
-            lowered_parameters_by_value[sm_reg.constant_value] = lowered_parameter
+                constant_value=mask)
+            lowered_parameters_by_value[mask] = lowered_parameter
 
         # Keep all the SM_REG's attributes except those that are specific to the
         # lowered parameter
         return sm_reg.having(
             identifier=lowered_parameter.identifier,
             is_lowered=lowered_parameter.is_lowered,
+            is_section=False,
             constant_value=lowered_parameter.constant_value)
 
 
@@ -1242,6 +1247,8 @@ class NormalizeSectionMasks(BLEIRTransformer, BLEIRListener):
             return sm_reg
 
         mask = sm_reg.constant_value
+        if sm_reg.is_section:
+            mask = (0x0001 << mask)
         shift_width = self.get_shift(mask)
 
         if (mask >> shift_width) == (0xFFFF >> shift_width):

@@ -624,6 +624,15 @@ class GlassOrder(BleirEnum):
         return BLEIR.GlassOrder.find_by_value(self.value)
 
 
+class GlassOrientation(BleirEnum):
+    PLAT_WISE = "plat-wise"
+    SECTION_WISE = "section-wise"
+    # VR_WISE = "vr-wise"
+
+    def as_bleir(self: "GlassOrientation") -> BLEIR.GlassOrientation:
+        return BLEIR.GlassOrientation.find_by_value(self.value)
+
+
 def value_by_parameter_id(fn: Callable) -> Callable:
 
     @wraps(fn)
@@ -830,7 +839,8 @@ class Belex(BleirSerializable):
               fmt: Union[str, GlassFormat] = "hex",
               order: Optional[Union[str, GlassOrder]] = None,
               balloon: bool = True,
-              rewrite: Optional[Dict[str, str]] = None) -> Optional[str]:
+              rewrite: Optional[Dict[str, str]] = None,
+              orientation: Union[str, GlassOrientation] = "plat-wise") -> Optional[str]:
 
         if isinstance(fmt, str):
             fmt = GlassFormat.find_by_value(fmt.lower())
@@ -838,6 +848,14 @@ class Belex(BleirSerializable):
         if not isinstance(fmt, GlassFormat):
             raise ValueError(
                 f"Unsupported fmt type ({fmt.__class__.__name__}): {fmt}")
+
+        if isinstance(orientation, str):
+            orientation = GlassOrientation.find_by_value(orientation.lower())
+
+        if not isinstance(orientation, GlassOrientation):
+            raise ValueError(
+                f"Unsupported orientation type "
+                f"({orientation.__class__.__name__}): {orientation}")
 
         if order is None:
             if fmt is GlassFormat.HEX:
@@ -878,7 +896,8 @@ class Belex(BleirSerializable):
             balloon=balloon,
             rewrite=rewrite,
             file_path=file_path,
-            line_number=line_number)
+            line_number=line_number,
+            orientation=orientation)
 
         # self.instructions.append(instruction)
         self.add_instruction(instruction)
@@ -2739,6 +2758,7 @@ class GlassStatement(Instruction, BleirSerializable):
     rewrite: Optional[Dict[str, str]]
     file_path: Optional[str] = None
     line_number: int = -1
+    orientation: GlassOrientation = GlassOrientation.PLAT_WISE
 
     def as_bleir(self: "GlassStatement") -> List[BLEIR.GlassStatement]:
         return [
@@ -2752,7 +2772,8 @@ class GlassStatement(Instruction, BleirSerializable):
                 balloon=self.balloon,
                 rewrite=self.rewrite,
                 file_path=self.file_path,
-                line_number=self.line_number),
+                line_number=self.line_number,
+                orientation=self.orientation.as_bleir()),
         ]
 
 
