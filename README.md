@@ -1,38 +1,34 @@
 # Belex (Open Source)
 
-Belex is the Bit-Engine Language of Expressions.
+Belex is the Bit-Engine Language of Expressions for GSI's APU.
 
-Version of 10 Aug 2023
-
-This documentation covers the core classes and functions of Belex.
+Version of 02-Feb-2024
 
 # Initialization
 
-At the moment, only conda environments are supported. The following shows how
-to set up yours:
 
 ```bash
-# location of your project directories
-WORKSPACE="$HOME/tmp"
-mkdir -p "$WORKSPACE"
+# let $WORKSPACE be the parent working directory of open-belex
 cd "$WORKSPACE"
 
-# Clone the Belex repositories (choose the same branch for all repositories):
+# Clone the open-belex repositories (unless you know what you are doing,
+# please choose the same branch for all repositories):
 # 1. "master" -> clone latest release code
 # 2. "develop" -> clone latest development code
-DEFAULT_BRANCH="develop"
+DEFAULT_BRANCH="master"
 BELEX_BRANCH="$DEFAULT_BRANCH"
 
-git clone --branch "$BELEX_BRANCH" git@bitbucket.org:gsitech/open-belex.git
+git clone --branch "$BELEX_BRANCH" \
+    https://github.com/gsitechorg/open-belex.git
+
+cd open-belex
 
 # Create the conda environment
-cd "$WORKSPACE/open-belex"
 mamba env create --force -f environment.yml
-
 conda activate open-belex
 
-pip install \
-  -e "$WORKSPACE/open-belex"
+# Tell pip to use the cloned version of open-belex
+pip install -e .
 ```
 
 # Command Syntax
