@@ -1,6 +1,15 @@
 # Belex (Open Source)
 
 Belex is the Bit-Engine Language of Expressions for GSI's APU.
+[open-belex](https://github.com/gsitechorg/open-belex) defines a low-level
+language (Python DSL) named, Belex. Also defined are a model of the APU named,
+DIRI, an interpreter, a compilation pipeline, and a few other utilities for use
+in Belex development.
+
+Fragments (snippets of microcode executed by the APU) written in Belex are
+parsed into an intermediate representation (IR) named, BLEIR, or the Bit-Level Engine
+Intermediate Representation. This IR facilitates syntactic analysis, semantic
+analysis, code transformations such as optimizations, and code generation.
 
 Version of 02-Feb-2024
 
@@ -35,7 +44,8 @@ pip install -e .
 ## Application Initialization
 
 Before running any Belex-related code, you should initialize the environment as
-follows:
+follows (note that this is done automatically for
+[open-belex-tests](https://github.com/gsitechorg/open-belex-tests)):
 
 ```python
 import logging
@@ -65,6 +75,10 @@ if BLEIRInterpreter.has_context():
 else:
     interpreter = BLEIRInterpreter.push_context(diri=diri)
 ```
+
+# Architecture
+
+
 
 # Command Syntax
 
