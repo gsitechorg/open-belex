@@ -133,7 +133,7 @@ little different than the others.
 
 `RSP16` operates on each half-bank. The suffix, 16, specifies the plats in each
 half-bank are to be grouped, contiguously, by 16 plats and OR'd together. Since
-there are 2,048 plats per half-bank, `RSP16` has `2048 / 16 = 128` plats
+there are 2,048 plats per half-bank, `RSP16` has `2048/16=128` plats
 (overloaded term for a column-like structure according to our orientation of the
 APU).
 
@@ -156,7 +156,7 @@ follows:
 
 `RSP256` operates on each half-bank. The suffix, 256, specifies the plats in
 each half-bank are to be grouped, contiguously, by 256 plats and OR'd together.
-Since there are 2,048 plats per half-bank, `RSP256` has `2048 / 256 = 8` plats.
+Since there are 2,048 plats per half-bank, `RSP256` has `2048/256=8` plats.
 
 When reading from `RSP16` to `RSP256`, the 8 plats of `RSP256` are defined as
 follows (in terms of `RL`):
@@ -188,7 +188,7 @@ follows:
 
 `RSP2K` operates on each half-bank. The suffix, 2K, specifies the 2,048 plats in
 each half-bank are grouped and OR'd together into a single plat. Since there are
-2,048 plats per half-bank, `RSP2K` has `2048 / 2048 = 1` plat.
+2,048 plats per half-bank, `RSP2K` has `2048/2048=1` plat.
 
 When reading from `RSP256` to `RSP2K`, the 1 plat of `RSP2K` is defined as
 follows (in terms of `RL`):
@@ -286,17 +286,17 @@ APUC. To pop a message off an RSP queue:
    where `bank_id` is an integer in the range `[0, 4)`, where the result is a
    32-bit integer consisting of the concatenated `RSP2K` results of two
    half-banks as follows (add 8 to the half-bank index for APC 1, e.g. half-bank
-   2 of APC 1 is half-bank `1 + 8 = 9` of the APUC):
-   - `bank_id = 0` implies the concatenated `RSP2K` results for half-banks 0 and
+   2 of APC 1 is half-bank `1+8=9` of the APUC):
+   - `bank_id=0` implies the concatenated `RSP2K` results for half-banks 0 and
      4 in the respective APC, where bits `[0, 16)` are the `RSP2K` result for
      half-bank 0 and bits `[16, 32)` are the `RSP2K` result for half-bank 4.
-   - `bank_id = 1` implies the concatenated `RSP2K` results for half-banks 1 and
+   - `bank_id=1` implies the concatenated `RSP2K` results for half-banks 1 and
      5 in the respective APC, where bits `[0, 16)` are the `RSP2K` result for
      half-bank 1 and bits `[16, 32)` are the `RSP2K` result for half-bank 5.
-   - `bank_id = 2` implies the concatenated `RSP2K` results for half-banks 2 and
+   - `bank_id=2` implies the concatenated `RSP2K` results for half-banks 2 and
      6 in the respective APC, where bits `[0, 16)` are the `RSP2K` result for
      half-bank 2 and bits `[16, 32)` are the `RSP2K` result for half-bank 6.
-   - `bank_id = 3` implies the concatenated `RSP2K` result for half-banks 3 and
+   - `bank_id=3` implies the concatenated `RSP2K` result for half-banks 3 and
      7 in the respective APC, where bits `[0, 16)` are the `RSP2K` result for
      half-bank 3 and bits `[16, 32)` are the `RSP2K` result for half-bank 7.
 
