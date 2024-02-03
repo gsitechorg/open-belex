@@ -80,8 +80,8 @@ Semantically, the contents are combined Implicitly via AND when `SB` appears on
 the right-hand side of a command. On the left-hand side of a command, a parallel
 assignment to all SB numbers (row numbers) is implied. On the right-hand side of
 a command, the row numbers may be any combination of 1 to 3 elements in the
-range `[0, 24)`, but on the left-hand side of a command, they must be among the
-same group, where a group consists of row numbers in the range `[0, 8)`,
+range `[0,24)`, but on the left-hand side of a command, they must be among the
+same group, where a group consists of row numbers in the range `[0,8)`,
 `[8, 16)`, or `[16, 24)`.
 
     SB[x]
@@ -92,7 +92,7 @@ This notation is extended to support up to 16 row numbers (any combination of 0
 to 16 row numbers) on the right-hand side of a command with `RE_REG` parameters,
 and up to 8 row numbers (within the same group) on the left-hand side of a
 command with `EWE_REG` parameters. An `EWE_REG` group consists of row numbers in
-the range `[0, 8)`, `[8, 16)`, or `[16, 24)`.
+the range `[0,8)`, `[8,16)`, or `[16,24)`.
 
 Extended SB registers support the operations of negation and left-shifting. The
 operations restrict the results within their respective constraints/domains.
@@ -139,18 +139,19 @@ APU).
 
 When reading from `RL` to `RSP16`, the 128 plats of `RSP16` are defined as
 follows:
-- Plat 0 of `RSP16` consists of the OR'd plats of `RL` in the range `[0, 16)`.
-- Plat 1 of `RSP16` consists of the OR'd plats of `RL` in the range `[16, 32)`.
+- Plat 0 of `RSP16` consists of the OR'd plats of `RL` in the range `[0,16)`.
+- Plat 1 of `RSP16` consists of the OR'd plats of `RL` in the range `[16,32)`.
 - ...
 - Plat 127 of `RSP16` consists of the OR' plats of `RL` in the range
-  `[2032, 2048)`.
+  `[2032,2048)`.
 
 When writing from `RSP16` to `RL`, the 2,048 plats of `RL` are defined as
 follows:
-- Plats `[0, 16)` of `RL` consist of copies of plat 0 of `RSP16`.
-- Plats `[16, 32)` of `RL` consist of copies of plat 1 of `RSP16`.
+- Plats in the range `[0,16)` of `RL` consist of copies of plat 0 of `RSP16`.
+- Plats in the range `[16,32)` of `RL` consist of copies of plat 1 of `RSP16`.
 - ...
-- Plats `[2032, 2048)` of `RL` consist of copies of plat 127 of `RSP16`.
+- Plats in the range `[2032,2048)` of `RL` consist of copies of plat 127 of
+  `RSP16`.
 
 ### RSP256
 
@@ -160,29 +161,30 @@ Since there are 2,048 plats per half-bank, `RSP256` has `2048/256=8` plats.
 
 When reading from `RSP16` to `RSP256`, the 8 plats of `RSP256` are defined as
 follows (in terms of `RL`):
-- Plat 0 of `RSP256` consists of the OR'd plats of `RL` in the range `[0, 256)`.
+- Plat 0 of `RSP256` consists of the OR'd plats of `RL` in the range `[0,256)`.
 - Plat 1 of `RSP256` consists of the OR'd plats of `RL` in the range
-  `[256, 512)`.
+  `[256,512)`.
 - ...
 - Plat 7 of `RSP256` consists of the OR'd plats of `RL` in the range
-  `[1792, 2048)`.
+  `[1792,2048)`.
 
 When reading from `RSP16` to `RSP256`, the 8 plats of `RSP256` are defined as
 follows (in terms of `RSP16`):
 - Plat 0 of `RSP256` consists of the OR'd plats of `RSP16` in the range
-  `[0, 16)`.
+  `[0,16)`.
 - Plat 1 of `RSP256` consists of the OR'd plats of `RSP16` in the range
-  `[16, 32)`.
+  `[16,32)`.
 - ...
 - Plat 7 of `RSP256` consists of the OR'd plats of `RSP16` in the range
-  `[112, 128)`.
+  `[112,128)`.
 
 When writing from `RSP256` to `RSP16`, the 128 plats of `RSP16` are defined as
 follows:
-- Plats `[0, 16)` of `RSP16` consist of copies of plat 0 of `RSP256`.
-- Plats `[16, 32)` of `RSP16` consist of copies of plat 1 of `RSP256`.
+- Plats in the range `[0,16)` of `RSP16` consist of copies of plat 0 of `RSP256`.
+- Plats in the range `[16,32)` of `RSP16` consist of copies of plat 1 of `RSP256`.
 - ...
-- Plats `[112, 128)` of `RSP16` consist of copies of plat 7 of `RSP256`.
+- Plats in the range `[112,128)` of `RSP16` consist of copies of plat 7 of
+  `RSP256`.
 
 ### RSP2K
 
@@ -192,16 +194,16 @@ each half-bank are grouped and OR'd together into a single plat. Since there are
 
 When reading from `RSP256` to `RSP2K`, the 1 plat of `RSP2K` is defined as
 follows (in terms of `RL`):
-- Plat 0 of `RSP2K` consists of the OR'd plats of `RL` in the range `[0, 2048)`.
+- Plat 0 of `RSP2K` consists of the OR'd plats of `RL` in the range `[0,2048)`.
 
 When reading from `RSP256` to `RSP2K`, the 1 plat of `RSP2K` is defined as
 follows (in terms of `RSP256`):
 - Plat 0 of `RSP2K` consists of the OR'd plats of `RSP256` in the range
-  `[0, 8)`.
+  `[0,8)`.
 
 When writing from `RSP2K` to `RSP256`, the 8 plats of `RSP256` are defined as
 follows:
-- Plats `[0, 8)` of `RSP256` consist of copies of plat 0 of `RSP2K`.
+- Plats in the range `[0,8)` of `RSP256` consist of copies of plat 0 of `RSP2K`.
 
 ### RSP32K
 
@@ -280,25 +282,25 @@ APUC. To pop a message off an RSP queue:
 2. Read the `RSP32K` result from the message via `APL_RD_RSP32K_REG()`. This
    will be an 8-bit integer where each bit represents the OR'd `RSP2K` result
    from the respective half-bank in the same APC. For example, half-banks
-   `[0, 8)` are members of APC 0, while half-banks `[8, 16)` are members of
+   `[0,8)` are members of APC 0, while half-banks `[8,16)` are members of
    APC 1.
 3. Read the `RSP2K` result from the message via `APL_RD_RSP2K_REG(bank_id)`,
-   where `bank_id` is an integer in the range `[0, 4)`, where the result is a
+   where `bank_id` is an integer in the range `[0,4)`, where the result is a
    32-bit integer consisting of the concatenated `RSP2K` results of two
    half-banks as follows (add 8 to the half-bank index for APC 1, e.g. half-bank
    2 of APC 1 is half-bank `1+8=9` of the APUC):
    - `bank_id=0` implies the concatenated `RSP2K` results for half-banks 0 and
-     4 in the respective APC, where bits `[0, 16)` are the `RSP2K` result for
-     half-bank 0 and bits `[16, 32)` are the `RSP2K` result for half-bank 4.
+     4 in the respective APC, where bits `[0,16)` are the `RSP2K` result for
+     half-bank 0 and bits `[16,32)` are the `RSP2K` result for half-bank 4.
    - `bank_id=1` implies the concatenated `RSP2K` results for half-banks 1 and
-     5 in the respective APC, where bits `[0, 16)` are the `RSP2K` result for
-     half-bank 1 and bits `[16, 32)` are the `RSP2K` result for half-bank 5.
+     5 in the respective APC, where bits `[0,16)` are the `RSP2K` result for
+     half-bank 1 and bits `[16,32)` are the `RSP2K` result for half-bank 5.
    - `bank_id=2` implies the concatenated `RSP2K` results for half-banks 2 and
-     6 in the respective APC, where bits `[0, 16)` are the `RSP2K` result for
-     half-bank 2 and bits `[16, 32)` are the `RSP2K` result for half-bank 6.
+     6 in the respective APC, where bits `[0,16)` are the `RSP2K` result for
+     half-bank 2 and bits `[16,32)` are the `RSP2K` result for half-bank 6.
    - `bank_id=3` implies the concatenated `RSP2K` result for half-banks 3 and
-     7 in the respective APC, where bits `[0, 16)` are the `RSP2K` result for
-     half-bank 3 and bits `[16, 32)` are the `RSP2K` result for half-bank 7.
+     7 in the respective APC, where bits `[0,16)` are the `RSP2K` result for
+     half-bank 3 and bits `[16,32)` are the `RSP2K` result for half-bank 7.
 
 #### RSP Write Mode
 
