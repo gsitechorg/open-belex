@@ -6,6 +6,7 @@ Version of 02-Feb-2024
 
 # Initialization
 
+At the moment, only conda environments are supported. The following shows how to set up yours:
 
 ```bash
 # let $WORKSPACE be the parent working directory of open-belex
@@ -29,6 +30,40 @@ conda activate open-belex
 
 # Tell pip to use the cloned version of open-belex
 pip install -e .
+```
+
+## Application Initialization
+
+Before running any Belex-related code, you should initialize the environment as
+follows:
+
+```python
+import logging
+
+from open_belex.bleir.interpreters import BLEIRInterpreter
+from open_belex.common.rsp_fifo import ApucRspFifo
+from open_belex.common.seu_layer import SEULayer
+from open_belex.diri.half_bank import DIRI
+from open_belex.utils.log_utils import init_logger
+
+LOGGER = logging.getLogger()
+if len(LOGGER.handlers) == 0:
+    # Let APP_NYM be the name of your application
+    init_logger(LOGGER, APP_NYM, log_to_console=False)
+
+apuc_rsp_fifo = ApucRspFifo.context()
+
+if DIRI.has_context():
+    diri = DIRI.context()
+else:
+    diri = DIRI.push_context(apuc_rsp_fifo=apuc_rsp_fifo)
+
+seu = SEULayer.context()
+
+if BLEIRInterpreter.has_context():
+    interpreter = BLEIRInterpreter.context()
+else:
+    interpreter = BLEIRInterpreter.push_context(diri=diri)
 ```
 
 # Command Syntax
@@ -101,6 +136,18 @@ In the grammar rules, everywhere an `<SB>` or `SB[...]` appears, an extended
 `<SB>` may appear in its place so long as the type of the extended register is
 `RE_REG` on the right-hand side of the command or `EWE_REG` on the left-hand
 side of the command.
+
+## RL
+
+
+
+## GL
+
+
+
+## GGL
+
+
 
 ## RSP
 
@@ -276,19 +323,20 @@ RSP_END()
 
 There is 1 RSP queue per APC, and 2 APCs per APUC, so there are 2 RSP queues per
 APUC. To pop a message off an RSP queue:
-1. Specify an APC to read from via `APC_RSP_RD(apc-id)`, where `apc_id` is
-   either 0 or 1. This will take the first message off the queue and make it
-   available to read.
-2. Read the `RSP32K` result from the message via `APL_RD_RSP32K_REG()`. This
-   will be an 8-bit integer where each bit represents the OR'd `RSP2K` result
-   from the respective half-bank in the same APC. For example, half-banks
-   `[0,8)` are members of APC 0, while half-banks `[8,16)` are members of
-   APC 1.
-3. Read the `RSP2K` result from the message via `APL_RD_RSP2K_REG(bank_id)`,
-   where `bank_id` is an integer in the range `[0,4)`, where the result is a
-   32-bit integer consisting of the concatenated `RSP2K` results of two
-   half-banks as follows (add 8 to the half-bank index for APC 1, e.g. half-bank
-   2 of APC 1 is half-bank `1+8=9` of the APUC):
+1. Specify an APC to read from via `apuc_rsp_fifo.rsp_rd(apc-id)`, where
+   `apc_id` is either 0 or 1. This will take the first message off the queue and
+   make it available to read.
+2. Read the `RSP32K` result from the message via
+   `apuc_rsp_fifo.rd_rsp32k_reg()`. This will be an 8-bit integer where each bit
+   represents the OR'd `RSP2K` result from the respective half-bank in the same
+   APC. For example, half-banks `[0,8)` are members of APC 0, while half-banks
+   `[8,16)` are members of APC 1.
+3. Read the `RSP2K` result from the message via
+   `apuc_rsp_fifo.rd_rsp2k_reg(bank_id)`, where `bank_id` is an integer in the
+   range `[0,4)`, where the result is a 32-bit integer consisting of the
+   concatenated `RSP2K` results of two half-banks as follows (add 8 to the
+   half-bank index for APC 1, e.g. half-bank 2 of APC 1 is half-bank `1+8=9` of
+   the APUC):
    - `bank_id=0` implies the concatenated `RSP2K` results for half-banks 0 and
      4 in the respective APC, where bits `[0,16)` are the `RSP2K` result for
      half-bank 0 and bits `[16,32)` are the `RSP2K` result for half-bank 4.
