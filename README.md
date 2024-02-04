@@ -107,6 +107,12 @@ register then passed to the fragment in the value's stead. Setting a register
 value and passing the register as the parameter value requires no implicit
 allocation since the register was allocated explicitly.
 
+Belex fragments may be called with kwarg notation. By convention, when using
+implicit register allocation, kwargs are optional, but when using explicit
+register allocation they are recommended. Mixing standard and keyword args is
+also supported in the same manner they are supported by Python functions, but it
+is recommended to choose only one convention.
+
 # Architecture
 
 An overview of the architecture of an APU (Associative Processing Unit) follows:
@@ -165,18 +171,18 @@ An overview of the architecture of an APU (Associative Processing Unit) follows:
 
 ## Vector Registers
 
-There are 24 vector registers (VRs) per APUC. Each VR is a 2-dimensional array
-of size 32,768 plats (i.e. columns, according to our orientation) and 16
+There are 24 vector registers (`VRs`) per APUC. Each `VR` is a 2-dimensional
+array of size 32,768 plats (i.e. columns, according to our orientation) and 16
 sections (i.e. rows, according to our orientation). The plats are grouped
 contiguously and divided evenly among the half-banks, so each half-bank contains
-2,048 of the 32,768 plats -- for each VR -- and all 16 sections. Although there
-are 24 VRs, no more than 16 of them may be used by a fragment.
+2,048 of the 32,768 plats -- for each `VR` -- and all 16 sections. Although
+there are 24 `VRs`, no more than 16 of them may be used by a fragment.
 
-To interact with a VR, its unique row number must be written to one of the 16
-RN_REGs (row number registers). There are 24 VRs and their row numbers range
-from 0 to 23. The 16 RN_REGs are named RN_REG_0, RN_REG_1, ..., RN_REG_15. There
-are two ways to do this with Belex: (1) implicity with fragment parameters and
-temporaries or (2) explicitly as follows:
+To interact with a `VR`, its unique row number must be written to one of the 16
+`RN_REGs` (row number registers). There are 24 `VRs` and their row numbers range
+from 0 to 23. The 16 `RN_REGs` are named `RN_REG_0`, `RN_REG_1`, ...,
+`RN_REG_15`. There are two ways to do this with Belex: (1) implicity with
+fragment parameters and temporaries or (2) explicitly as follows:
 
 ```python
 # Assign the vector register, row number 3 to RN_REG_0:
@@ -257,12 +263,43 @@ sm_fragment(some_sm=SM_REG_0)
 ```
 
 Section masks support two operations: (1) left-shifts without rotation -- up to
-15 bits -- and (2) inversion:
+15 bits -- and (2) inversion. You may invert a shifted section mask, but you may
+not shift an inverted section mask.
 
 ```python
 @belex_apl
 def frag_w_sm_shift_and_inv(Belex, sm: Mask):
-    pass
+    RL[sm<<10] <= RSP16()
+    a: VR = Belex.VR()  # temporary VR, do not use the VR constructor directly!
+    b: VR = Belex.VR()  # temporary VR, do not use the VR constructor directly!
+    a[~sm] <= RL()
+    b[~(sm<<3)] <= GGL()
+```
+
+Section mask literals within fragments are also supported. An example using a
+string is given below, but please reference
+[Indices](docs/belex/types.md#indices) for all supported in-fragment literal
+types. Please note that integer literals are treated as section numbers and not
+section masks.
+
+```python
+@belex_apl
+def frag_w_sm_literal(Belex):
+    RL["0xFFFF"] <= 1
+```
+
+Should you wish to use an integer literal to construct a section mask, you must
+create a temporary with `Belex.Mask`:
+
+```python
+@belex_apl
+def frag_w_int_literal_sm(Belex):
+    x = 0xF0F0
+    y = 0xABCD
+    z = x ^ y  # 0x5B3D
+    RL[Belex.Mask(z)] <= INV_NRL()
+    # `RL[z] <= INV_NRL()` would raise the error:
+    # ValueError: An int literal index must represent a single section within the range [0,16). Did you mean to specify a hex literal string? 23357
 ```
 
 ### Sections
@@ -284,6 +321,8 @@ def sec_fragment(Belex, some_sec: Section):
 # Call `sec_fragment` with section 3 as the value of `some_sec`
 sec_fragment(3)
 ```
+
+Sections support the same operations as section masks.
 
 ## RL
 
@@ -521,9 +560,11 @@ An `RSP256` Write may be completed as follows, where the final READ to `RL` may
 be replaced with any READ or WRITE involving `RSP16` (or `INV_RSP16`):
 
 ```python
+# A section mask is required when broadcasting to RSP16 from RL:
 RSP16[mask_0] <= RL()
 RSP256() <= RSP16()
 RSP_START_RET()
+# No section mask is required when writing to RSP16 from RSP256:
 RSP16() <= RSP256()
 RL[mask_1] <= RSP16()
 RSP_END()
