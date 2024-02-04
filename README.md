@@ -6,10 +6,10 @@ language (Python DSL) named, Belex. Also defined are a model of the APU named,
 DIRI, an interpreter, a compilation pipeline, and a few other utilities for use
 in Belex development.
 
-Fragments (snippets of microcode executed by the APU) written in Belex are
-parsed into an intermediate representation (IR) named, BLEIR, or the Bit-Level Engine
-Intermediate Representation. This IR facilitates syntactic analysis, semantic
-analysis, code transformations such as optimizations, and code generation.
+Fragments written in Belex are parsed into an intermediate representation (IR)
+named, BLEIR, or the Bit-Level Engine Intermediate Representation. This IR
+facilitates syntactic analysis, semantic analysis, code transformations such as
+optimizations, and code generation.
 
 Version of 02-Feb-2024
 
@@ -81,6 +81,32 @@ else:
 Unless otherwise specified, all Python symbols in this documentation come from
 the `open_belex.literal` package.
 
+A fragment, in Belex, is a Python function decorated with `@belex_apl` that
+represents a snippet of microcode that is executed by the APU. All parameters to
+Belex fragments must be annotated with their respective types, except the first
+parameter. By convention, the first parameter is named `Belex` and is
+represented by an internal type that facilitates some special logic like the
+creation of temporaries. Either no return type or the return type of `None`
+should be specified by fragments, as native fragments have no return value.
+
+Belex supports both implicit and explicit register allocation, as well as some
+mixed use cases. Mixing implicit and explicit register allocation can occasional
+yield unexpected results, so it is highly recommended to choose only one of
+them.
+
+Belex works best when allowed to implicitly allocate registers as the code can
+be better optimized. You should prefer explicit register allocation if you
+desire manual code optimization; this mode is recommended only for those who are
+very experienced in APU programming.
+
+There is no explicit mode switch, the allocation mode is determined by the
+manner in which parameters are passed to fragments. Fragments only accept
+register parameters. Passing literal register values, such as `0xFFFF`, will
+require a register to be implicitly allocated and assigned the value, and the
+register then passed to the fragment in the value's stead. Setting a register
+value and passing the register as the parameter value requires no implicit
+allocation since the register was allocated explicitly.
+
 # Architecture
 
 An overview of the architecture of an APU (Associative Processing Unit) follows:
@@ -143,11 +169,8 @@ There are 24 vector registers (VRs) per APUC. Each VR is a 2-dimensional array
 of size 32,768 plats (i.e. columns, according to our orientation) and 16
 sections (i.e. rows, according to our orientation). The plats are grouped
 contiguously and divided evenly among the half-banks, so each half-bank contains
-2,048 of the 32,768 plats -- for each VR -- and all 16 sections.
-
-Although there are 24 VRs, no more than 16 of them may be used by a fragment. A
-fragment is a snippet of microcode that is executed by the APU, much like a
-function.
+2,048 of the 32,768 plats -- for each VR -- and all 16 sections. Although there
+are 24 VRs, no more than 16 of them may be used by a fragment.
 
 To interact with a VR, its unique row number must be written to one of the 16
 RN_REGs (row number registers). There are 24 VRs and their row numbers range
@@ -231,6 +254,15 @@ sm_fragment(0x0101)
 # Call `sm_fragment` with an explicit section mask register for section 12
 apl_set_sm_reg(SM_REG_0, 0x1000)
 sm_fragment(some_sm=SM_REG_0)
+```
+
+Section masks support two operations: (1) left-shifts without rotation -- up to
+15 bits -- and (2) inversion:
+
+```python
+@belex_apl
+def frag_w_sm_shift_and_inv(Belex, sm: Mask):
+    pass
 ```
 
 ### Sections
