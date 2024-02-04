@@ -616,7 +616,27 @@ RSP_END()
 
 ## Read/Write Inhibit
 
+Read/Write Inhibit (RWINH) acts much like a bit-level mask over READs and
+WRITEs. It allows one to turn off bits to reduce power consumption and mask
+operations, and unlike.
 
+To enable Read/Write Inhibit: within the same instruction, you must load a data mask into RL and call `RWINH_SET` with a section mask. The on-bits of the intersection of the data mask and section mask will serve as the inhibited filter for operations. Data not masked by the inhibition is left alone.
+
+To disable Read/Write Inhibit, simply call `RWINH_RST` with the same section mask used to enable it. You may disable the inhibition section-by-section, but this is not typically done in practice. You may not, however, enable the inhibition section-by-section; inhibition is enabled once while it is active, or the behavior is undefined.
+
+Syntactic sugar for enabling Read/Write Inhibit follows: `RWINH_SET[RL[msk] <= data()]`. This is equivalent to the following:
+
+```python
+with apl_commands():
+    RL[msk] <= data()
+    RWINH_SET[msk]
+```
+
+Then, to disable Read/Write Inhibit:
+
+```python
+RWIN_RST[msk]
+```
 
 # Command Syntax
 
