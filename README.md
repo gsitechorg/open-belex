@@ -76,80 +76,182 @@ else:
     interpreter = BLEIRInterpreter.push_context(diri=diri)
 ```
 
+# Conventions
+
+Unless otherwise specified, all Python symbols in this documentation come from
+the `open_belex.literal` package.
+
 # Architecture
 
+An overview of the architecture of an APU (Associative Processing Unit) follows:
+- There are 4 APUCs (APU Cores) per APU.
+- There is 1 32-bit ARC coprocessor per APUC.
+  - The host (CPU) communicates with the ARC coprocessor (device).
+  - The ARC coprocessor communicates with the APUC.
+- There are 2 APCs (Associative Processing Core) per APUC.
+- There are different levels of memory in the APU.
+  - L4 and L3 memory are part of the ARC coprocessor.
+    - Memory is not shared among ARC coprocessors.
+    - L4 is used primarily for data and heap memory.
+      - The host (CPU) communicates with the ARC coprocessor via L4 memory.
+    - L3 is used primarily for stack memory, but it is faster than L4 and is
+      therefore also used to manipulate vectors.
+      - There is less L3 memory than L4 memory.
+  - L2 is the first layer of memory on the APUC.
+    - I/O is performed between the ARC coprocessor and APU by copying data
+      to/from either L4 or L3 memory on the ARC coprocessor and L2 memory on the
+      APUC.
+    - There are 128 L2 addresses.
+    - There is 1 L2 register.
+  - L1 is the next layer of memory in the APUC.
+    - Data is copied between L2 and L1 memory via the LGL (described later).
+      - LGL has the same shape as an L2 buffer that holds an L2 address.
+    - There are 384 L1 addresses.
+      - For every 9 contiguous, valid L1 addresses (beginning at address 0),
+        there are 7 contiguous, invalid addresses.
+      - Invalid L1 addresses read random data regardless what is written to them.
+        - Invalid L1 addresses are only useful for generating random data.
+    - There are 4 L1 registers that hold L1 addresses.
+  - MMB (main memory block) is the primary layer of memory in which data is
+    manipulated.
+    - The MMB consists of the following components:
+      - 24 VRs (vector registers)
+      - 1 RL (read latch)
+      - 1 GL
+      - 1 GGL
+      - 1 RSP16
+      - 1 RSP256
+      - 1 RSP2K
+      - 1 RSP32K
+    - Data is copied between L1 and the MMB via the GGL (described later).
+      - GGL has the same shape as an L1 buffer.
+      - Data from L1 may be copied into either RL or a VR.
+        - VRs are the primary storage mechanisms for data in the MMB.
+          - VRs are used exclusively for storage and not manipulation.
+        - RL is used as temporary storage for data manipulation.
+          - RL has the same shape as a VR.
+        - If storage for future use is desired, then data should be copied into
+          a VR.
+        - If it is desired to begin manipulating or analyzing the data
+          immediately, then it should be copied into RL.
+- There are 16 half-banks per APUC.
+  - Half the half-banks (8 qty.) belong to one APC and half belong to the other.
 
+## Vector Registers
 
-# Command Syntax
+There are 24 vector registers (VRs) per APUC. Each VR is a 2-dimensional array
+of size 32,768 plats (i.e. columns, according to our orientation) and 16
+sections (i.e. rows, according to our orientation). The plats are grouped
+contiguously and divided evenly among the half-banks, so each half-bank contains
+2,048 of the 32,768 plats -- for each VR -- and all 16 sections.
 
-## SRC
+Although there are 24 VRs, no more than 16 of them may be used by a fragment. A
+fragment is a snippet of microcode that is executed by the APU, much like a
+function.
 
-### <SRC>
+To interact with a VR, its unique row number must be written to one of the 16
+RN_REGs (row number registers). There are 24 VRs and their row numbers range
+from 0 to 23. The 16 RN_REGs are named RN_REG_0, RN_REG_1, ..., RN_REG_15. There
+are two ways to do this with Belex: (1) implicity with fragment parameters and
+temporaries or (2) explicitly as follows:
 
-In a command, `<SRC>` may be any one of the following.
+```python
+# Assign the vector register, row number 3 to RN_REG_0:
+apl_set_rn_reg(RN_REG_0, 3)
+```
 
-    RL
-    NRL
-    ERL
-    WRL
-    SRL
-    GL
-    GGL
-    RSP16
+If you use the implicit convention then you should pass the row number as the
+parameter value when invoking a fragment (function decorated with `@belex_apl`),
+as follows:
 
-    INV_RL
-    INV_NRL
-    INV_ERL
-    INV_WRL
-    INV_SRL
-    INV_GL
-    INV_GGL
-    INV_RSP16
+```python
+@belex_apl
+def vr_fragment(Belex, some_vr: VR):
+    # The first parameter of a Belex fragment is an implicit instance of
+    # `open_belex.literal.Belex`. It is provided by the decorator and should
+    # not be passed as the first parameter to your function call.
+    pass
 
-### ~<SRC>
+vr_fragment(3)  # pass the vector register, row number 3 to `vr_fragment`
+```
 
-In a command, `~<SRC>` denotes the symbol `~` followed by one of the `<SRC>`
-symbols, as defined above.
+If you use the explicit convention, then the value must be set in the ARC
+coprocessor code and the register literal passed as the parameter value, as
+follows (by convention, kwarg notation should be used for explicit register
+parameters):
 
-The difference between `~<SRC>` and its `INV_<SRC>` variant lies in the semantic
-rules for laning (parallelism). Lanes may contain up to 4 commands. Only one
-`<SRC>` may appear among all the commands in a lane. Within a lane, `~<SRC>` and
-`INV_<SRC>` (for `<SRC>` elements with inverted variants) are considered
-different despite having equivalent operations on the `<SRC>` element.
+```python
+@belex_apl
+def vr_fragment(Belex, some_vr: VR):
+    # The first parameter of a Belex fragment is an implicit instance of
+    # `open_belex.literal.Belex`. It is provided by the decorator and should
+    # not be passed as the first parameter to your function call.
+    pass
 
-For example, if you reference `RSP16` in one command in a lane, you may not also
-reference `INV_RSP16` in another command in the same lane. If the command syntax
-supports the `~<SRC>` notation, you may safely combine `RSP16` with `~RSP16`.
-Not every command supports the `~<SRC>` syntax.
+# pass the vector register, row number 3 to `vr_fragment`
+apl_set_rn_reg(RN_REG_0, 3)
+vr_fragment(some_vr=RN_REG_0)
+```
 
-## <SB>
+Belex is designed to support both implicit and explicit register allocation, and
+they normally play well together, but some edge cases can cause mixing
+conventions to behave incorrectly. It is recommended to choose one convention
+and stick with it, preferably the implicit convention because it grants Belex
+more freedom in how it allocates resources.
 
-Up to three SB numbers (row numbers) may appear in an `<SB>` expression.
-Semantically, the contents are combined Implicitly via AND when `SB` appears on
-the right-hand side of a command. On the left-hand side of a command, a parallel
-assignment to all SB numbers (row numbers) is implied. On the right-hand side of
-a command, the row numbers may be any combination of 1 to 3 elements in the
-range `[0,24)`, but on the left-hand side of a command, they must be among the
-same group, where a group consists of row numbers in the range `[0,8)`,
-`[8, 16)`, or `[16, 24)`.
+## Section Masks
 
-    SB[x]
-    SB[x, y]
-    SB[x, y, z]
+A section mask is a 16-bit integer whose bits specify a mask over sections to
+manipulate. For example, `0x0001` means only section 0 should be manipulated,
+`0xFFFF` means all 16 section should be manipulated, and `0x0000` means no
+section should be manipulated.
 
-This notation is extended to support up to 16 row numbers (any combination of 0
-to 16 row numbers) on the right-hand side of a command with `RE_REG` parameters,
-and up to 8 row numbers (within the same group) on the left-hand side of a
-command with `EWE_REG` parameters. An `EWE_REG` group consists of row numbers in
-the range `[0,8)`, `[8,16)`, or `[16,24)`.
+To specify a section mask, an `SM_REG` (section mask register) must be used.
+There are 16 `SM_REGs` ranging from `SM_REG_0` to `SM_REG_15`. Passing section
+masks to fragments is handled analogously to how vector registers are passed:
+either implicitly by passing the section mask literals as parameter values to
+explicitly by manually setting a register value and passing the register as the
+parameter value.
 
-Extended SB registers support the operations of negation and left-shifting. The
-operations restrict the results within their respective constraints/domains.
+```python
+@belex_apl
+def sm_fragment(Belex, some_sm: Mask):
+    a: VR = Belex.VR()  # temporary VR, do not use the VR constructor directly!
+    b: VR = Belex.VR()  # temporary VR, do not use the VR constructor directly!
+    c: VR = Belex.VR()  # temporary VR, do not use the VR constructor directly!
+    with apl_commands():
+        RL[some_sm] <= 1
+        RL[~some_sm] <= 0
+    a[some_sm] <= RL()
+    some_sm[b, c] <= NRL()  # alternative notation when targeting up to 3 VRs
 
-In the grammar rules, everywhere an `<SB>` or `SB[...]` appears, an extended
-`<SB>` may appear in its place so long as the type of the extended register is
-`RE_REG` on the right-hand side of the command or `EWE_REG` on the left-hand
-side of the command.
+# Call `sm_fragment` with an implicit section mask register for sections 0 and 8
+sm_fragment(0x0101)
+
+# Call `sm_fragment` with an explicit section mask register for section 12
+apl_set_sm_reg(SM_REG_0, 0x1000)
+sm_fragment(some_sm=SM_REG_0)
+```
+
+### Sections
+
+A `Section` is a special type of section mask that makes it easier to operate on
+singletons. It accepts decimal values in the range `[0,15)`, and differs from
+the `Mask` type as the value `1<<section` will be the `SM_REG` value, where
+`section` is the desired section index. If the value `0` is passed as the
+parameter value of a `Mask` type, it would be treated as `0x0000`, or the empty
+mask; if the value `0` is passed as the parameter value of a `Section` type, it
+would be treated as `0x0001`, or the singleton mask representing the section at
+index 0.
+
+```python
+@belex_apl
+def sec_fragment(Belex, some_sec: Section):
+    RL[some_sec] <= GL()
+
+# Call `sec_fragment` with section 3 as the value of `some_sec`
+sec_fragment(3)
+```
 
 ## RL
 
@@ -424,6 +526,77 @@ RSP16() <= RSP256()
 RL[mask_1] <= RSP16()
 RSP_END()
 ```
+
+# Command Syntax
+
+## SRC
+
+### <SRC>
+
+In a command, `<SRC>` may be any one of the following.
+
+    RL
+    NRL
+    ERL
+    WRL
+    SRL
+    GL
+    GGL
+    RSP16
+
+    INV_RL
+    INV_NRL
+    INV_ERL
+    INV_WRL
+    INV_SRL
+    INV_GL
+    INV_GGL
+    INV_RSP16
+
+### ~<SRC>
+
+In a command, `~<SRC>` denotes the symbol `~` followed by one of the `<SRC>`
+symbols, as defined above.
+
+The difference between `~<SRC>` and its `INV_<SRC>` variant lies in the semantic
+rules for laning (parallelism). Lanes may contain up to 4 commands. Only one
+`<SRC>` may appear among all the commands in a lane. Within a lane, `~<SRC>` and
+`INV_<SRC>` (for `<SRC>` elements with inverted variants) are considered
+different despite having equivalent operations on the `<SRC>` element.
+
+For example, if you reference `RSP16` in one command in a lane, you may not also
+reference `INV_RSP16` in another command in the same lane. If the command syntax
+supports the `~<SRC>` notation, you may safely combine `RSP16` with `~RSP16`.
+Not every command supports the `~<SRC>` syntax.
+
+## <SB>
+
+Up to three SB numbers (row numbers) may appear in an `<SB>` expression.
+Semantically, the contents are combined Implicitly via AND when `SB` appears on
+the right-hand side of a command. On the left-hand side of a command, a parallel
+assignment to all SB numbers (row numbers) is implied. On the right-hand side of
+a command, the row numbers may be any combination of 1 to 3 elements in the
+range `[0,24)`, but on the left-hand side of a command, they must be among the
+same group, where a group consists of row numbers in the range `[0,8)`,
+`[8, 16)`, or `[16, 24)`.
+
+    SB[x]
+    SB[x, y]
+    SB[x, y, z]
+
+This notation is extended to support up to 16 row numbers (any combination of 0
+to 16 row numbers) on the right-hand side of a command with `RE_REG` parameters,
+and up to 8 row numbers (within the same group) on the left-hand side of a
+command with `EWE_REG` parameters. An `EWE_REG` group consists of row numbers in
+the range `[0,8)`, `[8,16)`, or `[16,24)`.
+
+Extended SB registers support the operations of negation and left-shifting. The
+operations restrict the results within their respective constraints/domains.
+
+In the grammar rules, everywhere an `<SB>` or `SB[...]` appears, an extended
+`<SB>` may appear in its place so long as the type of the extended register is
+`RE_REG` on the right-hand side of the command or `EWE_REG` on the left-hand
+side of the command.
 
 ## WRITE Logic
 
