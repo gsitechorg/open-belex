@@ -622,7 +622,7 @@ RSP_END()
 
 ## SRC
 
-### <SRC>
+### `<SRC>`
 
 In a command, `<SRC>` may be any one of the following.
 
@@ -644,7 +644,7 @@ In a command, `<SRC>` may be any one of the following.
     INV_GGL
     INV_RSP16
 
-### ~<SRC>
+### `~<SRC>`
 
 In a command, `~<SRC>` denotes the symbol `~` followed by one of the `<SRC>`
 symbols, as defined above.
@@ -660,7 +660,7 @@ reference `INV_RSP16` in another command in the same lane. If the command syntax
 supports the `~<SRC>` notation, you may safely combine `RSP16` with `~RSP16`.
 Not every command supports the `~<SRC>` syntax.
 
-## <SB>
+## `<SB>`
 
 Up to three SB numbers (row numbers) may appear in an `<SB>` expression.
 Semantically, the contents are combined Implicitly via AND when `SB` appears on
@@ -669,7 +669,7 @@ assignment to all SB numbers (row numbers) is implied. On the right-hand side of
 a command, the row numbers may be any combination of 1 to 3 elements in the
 range `[0,24)`, but on the left-hand side of a command, they must be among the
 same group, where a group consists of row numbers in the range `[0,8)`,
-`[8, 16)`, or `[16, 24)`.
+`[8,16)`, or `[16,24)`.
 
     SB[x]
     SB[x, y]
