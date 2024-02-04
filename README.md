@@ -638,6 +638,23 @@ Then, to disable Read/Write Inhibit:
 RWIN_RST[msk]
 ```
 
+## Multi-Statements
+
+Multi-statements, sometimes called instructions (in reference to commands) or lanes, execute up to 4 statements (or commands) in parallel. They are represented in Belex by the `apl_commands` context manager:
+
+```python
+with apl_commands():
+    a[msk] <= RL()
+    RL[msk] <= b()
+    GL[msk] <= RL()
+```
+
+Within multi-statements, there is the notion of half-clock semantics:
+- WRITEs are executed before READs.
+- READs are executed before BROADCASTs.
+- WRITEs and READs are executed before RWINH.
+- RWINH is executed before BROADCASTs.
+
 # Command Syntax
 
 ## SRC
