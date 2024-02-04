@@ -13,7 +13,7 @@ optimizations, and code generation.
 
 Version of 02-Feb-2024
 
-# Initialization
+# Repository Initialization
 
 At the moment, only conda environments are supported. The following shows how to set up yours:
 
@@ -41,7 +41,7 @@ conda activate open-belex
 pip install -e .
 ```
 
-## Application Initialization
+# Application Initialization
 
 Before running any Belex-related code, you should initialize the environment as
 follows (note that this is done automatically for
@@ -149,8 +149,8 @@ An overview of the architecture of an APU (Associative Processing Unit) follows:
     - The MMB consists of the following components:
       - 24 VRs (vector registers)
       - 1 RL (read latch)
-      - 1 GL
-      - 1 GGL
+      - 1 GL (global line)
+      - 1 GGL (group global line)
       - 1 RSP16
       - 1 RSP256
       - 1 RSP2K
@@ -221,12 +221,6 @@ def vr_fragment(Belex, some_vr: VR):
 apl_set_rn_reg(RN_REG_0, 3)
 vr_fragment(some_vr=RN_REG_0)
 ```
-
-Belex is designed to support both implicit and explicit register allocation, and
-they normally play well together, but some edge cases can cause mixing
-conventions to behave incorrectly. It is recommended to choose one convention
-and stick with it, preferably the implicit convention because it grants Belex
-more freedom in how it allocates resources.
 
 ## Section Masks
 
@@ -322,19 +316,39 @@ def sec_fragment(Belex, some_sec: Section):
 sec_fragment(3)
 ```
 
-Sections support the same operations as section masks.
+Sections support the same operations as section masks. Integer literals, when
+used as section masks, are treated as sections and must be in the range
+`[0,16)`.
 
 ## RL
 
-
+The read latch (`RL`) has the same dimensions as a `VR` and is used to
+manipulate data or for I/O. It is primarily used for data manipulation and for
+sending data out of the MMB, but it may also be used to send data into the MMB
+and for copying vector registers.
 
 ## GL
 
-
+`GL` consists of a single section of 32,768 plats. It has two primary use cases:
+- To copy data from a single section of `RL` to another section of either `RL`
+  or a `VR`.
+- All the sections broadcast to `GL` are AND'd together to reduce them to a
+  single section. `GL` is then duplicated to every target section of its
+  destination (either `RL` or a `VR`).
 
 ## GGL
 
+`GGL` consists of 4 sections and 32,768 plats. Each plat operates like a `GL`
+over its respective group of `RL` sections. `GGL` groups the sections of `RL`,
+contiguously, by 4.
+- Sections `[0,4)` of `RL` belong to group 0 of `GGL`.
+- Sections `[4,8)` of `RL` belong to group 1 of `GGL`.
+- Sections `[8,12)` of `RL` belong to group 2 of `GGL`.
+- Sections `[12,16)` of `RL` belong to group 3 of `GGL`.
 
+`GGL` may be used similarly to `GL`, within its respective groups, but add an
+additional use case:
+- Copying data between `RL` and `L1`.
 
 ## RSP
 
@@ -599,6 +613,10 @@ RSP16() <= RSP256()
 RL[mask_1] <= RSP16()
 RSP_END()
 ```
+
+## Read/Write Inhibit
+
+
 
 # Command Syntax
 
